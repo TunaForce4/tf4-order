@@ -8,8 +8,8 @@ import lombok.RequiredArgsConstructor;
 public enum OrderStatus {
 
     PENDING("PENDING"), // 주문 요청
-    PAID("PAID"), // 결제 완료
     PREPARED("PREPARED"), // 상품 준비 완료
+    PAID("PAID"), // 결제 완료
     SHIPPING("SHIPPING"), // 배송 중
     DELIVERED("DELIVERED"), // 배송 완료
 
