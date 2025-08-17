@@ -1,9 +1,12 @@
 package com.tunaforce.order.controller;
 
+import com.tunaforce.order.dto.request.OrderCreateRequestDto;
 import com.tunaforce.order.service.OrderService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/orders")
@@ -11,4 +14,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class OrderController {
 
     private final OrderService orderService;
+
+    @PostMapping
+    public ResponseEntity<Void> createOrder(
+            @RequestBody OrderCreateRequestDto orderCreateRequestDto,
+            @RequestHeader("X-USER-ID") UUID userId // FIXME 임시
+    ) {
+        orderService.createOrder(orderCreateRequestDto, userId);
+
+        return ResponseEntity.created(null)
+                .body(null);
+    }
 }
