@@ -29,7 +29,7 @@ public class ProductFeignFallbackFactory implements FallbackFactory<ProductFeign
                     throw new CustomRuntimeException(OrderException.PRODUCT_NOT_FOUND);
                 }
 
-                if (cause instanceof FeignException.Forbidden) {
+                if (cause instanceof FeignException.Conflict) {
                     throw new CustomRuntimeException(OrderException.UNSUFFICIENT_PRODUCT_QUANTITY);
                 }
 
