@@ -17,7 +17,7 @@ import java.util.UUID;
 public interface DeliveryFeignClient {
 
     @GetMapping("/find-by-user-id/{userId}")
-    DeliveryFindInfoResponseDto findDeliveryInfoById(@PathVariable("userId") UUID userId);
+    DeliveryFindInfoResponseDto findDeliveryInfoByUserId(@PathVariable("userId") UUID userId);
 
     @PostMapping("/create-delivery")
     void createOrderDelivery();
