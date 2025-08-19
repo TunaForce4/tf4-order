@@ -1,6 +1,6 @@
 spring:
   application:
-    name: order-service
+    name: orders
 
   profiles:
     active: dev
@@ -9,4 +9,3 @@ spring:
     openfeign:
       circuitbreaker:
         enabled: true
-

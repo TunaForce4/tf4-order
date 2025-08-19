@@ -3,6 +3,7 @@ package com.tunaforce.order.entity;
 import com.tunaforce.order.common.entity.Timestamped;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -36,4 +37,36 @@ public class Order extends Timestamped {
     @Column(name = "order_status", nullable = false)
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
+
+    @Builder
+    public Order(UUID supplyCompanyId, UUID receiveCompanyId, Integer price, Integer quantity, String requestMemo, OrderStatus status) {
+        this.supplyCompanyId = supplyCompanyId;
+        this.receiveCompanyId = receiveCompanyId;
+        this.price = price;
+        this.quantity = quantity;
+        this.requestMemo = requestMemo;
+        this.status = status;
+    }
+
+    public void setProductInfo(UUID supplyCompanyId, Integer price) {
+        this.supplyCompanyId = supplyCompanyId;
+        this.price = price;
+    }
+
+    // set order status
+    public void setStatusPrepared() {
+        this.status = OrderStatus.PREPARED;
+    }
+
+    public void setStatusPaid() {
+        this.status = OrderStatus.PAID;
+    }
+
+    public void setStatusShipping() {
+        this.status = OrderStatus.SHIPPING;
+    }
+
+    public void setStatusDelivered() {
+        this.status = OrderStatus.DELIVERED;
+    }
 }
