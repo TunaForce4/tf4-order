@@ -1,4 +1,4 @@
-package com.tunaforce.order.common.entity;
+package com.tunaforce.order.common.config;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.data.domain.AuditorAware;
@@ -18,7 +18,7 @@ public class AuditAwareImpl implements AuditorAware<UUID> {
         // check type & casting
         if (requestAttributes instanceof ServletRequestAttributes servletRequestAttributes) {
             HttpServletRequest request = servletRequestAttributes.getRequest();
-            String userId = request.getHeader("X-USER-ID");
+            String userId = request.getHeader("X-Auth-User-Id");
 
             return Optional.of(UUID.fromString(userId));
         }
