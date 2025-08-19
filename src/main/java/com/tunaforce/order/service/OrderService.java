@@ -3,26 +3,38 @@ package com.tunaforce.order.service;
 import com.tunaforce.order.common.exception.CustomRuntimeException;
 import com.tunaforce.order.common.exception.OrderException;
 import com.tunaforce.order.dto.request.OrderCreateRequestDto;
+import com.tunaforce.order.dto.response.OrderFindPageResponseDto;
 import com.tunaforce.order.entity.Order;
 import com.tunaforce.order.entity.OrderStatus;
 import com.tunaforce.order.entity.UserRole;
 import com.tunaforce.order.repository.feign.auth.AuthFeignClient;
 import com.tunaforce.order.repository.feign.company.CompanyFeignClient;
+import com.tunaforce.order.repository.feign.company.response.CompanyFindInfoListResponseDto;
 import com.tunaforce.order.repository.feign.company.response.CompanyFindInfoResponseDto;
 import com.tunaforce.order.repository.feign.delivery.DeliveryFeignClient;
 import com.tunaforce.order.repository.feign.delivery.dto.response.DeliveryFindInfoResponseDto;
 import com.tunaforce.order.repository.feign.hub.HubFeignClient;
 import com.tunaforce.order.repository.feign.hub.response.HubFindInfoResponseDto;
 import com.tunaforce.order.repository.feign.product.ProductFeignClient;
+import com.tunaforce.order.repository.feign.product.dto.request.ProductFindInfoListRequestDto;
 import com.tunaforce.order.repository.feign.product.dto.request.ProductReduceStockRequestDto;
+import com.tunaforce.order.repository.feign.product.dto.response.ProductFindInfoListResponseDto;
 import com.tunaforce.order.repository.feign.product.dto.response.ProductFindInfoResponseDto;
 import com.tunaforce.order.repository.feign.product.dto.response.ProductReduceStockResponseDto;
 import com.tunaforce.order.repository.jpa.OrderJpaRepository;
+import com.tunaforce.order.repository.querydsl.OrderQuerydslRepository;
+import com.tunaforce.order.repository.querydsl.dto.response.OrderDetailsQuerydslResponseDto;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +47,7 @@ public class OrderService {
     private final DeliveryFeignClient deliveryFeignClient;
 
     private final OrderJpaRepository orderJpaRepository;
+    private final OrderQuerydslRepository orderQuerydslRepository;
 
     @Transactional
     public void createOrder(OrderCreateRequestDto request, UUID userId, UserRole role) {
@@ -88,6 +101,77 @@ public class OrderService {
 
         // 주문 영속화
         orderJpaRepository.save(order);
+    }
+
+    /**
+     * 특정 허브 소속 업체들의 주문 내역 조회
+     */
+    public OrderFindPageResponseDto findHubOrderPage(
+            Pageable pageable,
+            UUID hubId,
+            UUID userId,
+            UserRole role
+    ) {
+        // 권한 - 마스터 또는 본인 허브만 조회 가능
+        // 배송 담당자 또는 업체 담당자의 경우 - 허브 주문 내역 조회 불가
+        if (role.equals(UserRole.DELIVERY) || role.equals(UserRole.COMPANY)) {
+            throw new CustomRuntimeException(OrderException.ACCESS_DENIED);
+        }
+
+        // 허브 담당자의 경우 - 조회하려는 허브가 본인의 허브인지 확인
+        if (role.equals(UserRole.HUB)) {
+            HubFindInfoResponseDto hubInfo = hubFeignClient.findHubInfoByUserId(userId);
+            validateUuidMatch(hubInfo.hubId(), hubId);
+        }
+
+        // 조회하려는 허브 정보 조회 및 소속 업체 조회
+        HubFindInfoResponseDto hubInfo = hubFeignClient.findHubInfoByHubId(hubId);
+        CompanyFindInfoListResponseDto companyInfos = companyFeignClient.findCompanyInfoByHubId(hubId);
+
+        List<UUID> companyIds = companyInfos.data().stream()
+                .map(CompanyFindInfoResponseDto::companyId)
+                .toList();
+
+        Page<OrderDetailsQuerydslResponseDto> page = orderQuerydslRepository.findHubOrderPage(pageable, companyIds);
+
+        Map<UUID, String> companies = companyInfos.toMap();
+
+        // 상품 id들에 해당하는 상품명 조회
+        Set<UUID> productIds = getUniqueProductIds(page.getContent());
+
+        ProductFindInfoListResponseDto productInfoList
+                = productFeignClient.findByIds(new ProductFindInfoListRequestDto(productIds.stream().toList()));
+
+        Map<UUID, String> products = productInfoList.toMap();
+
+        return OrderFindPageResponseDto.from(page, hubInfo.hubName(), companies, products);
+    }
+
+    public OrderFindPageResponseDto findCompanyOrderPage(Pageable pageable, UUID companyId, UUID userId, UserRole role) {
+        // 권한 - 마스터 또는 소속 허브 담당자, 본인 업체만 조회 가능
+        if (role.equals(UserRole.DELIVERY)) {
+            throw new CustomRuntimeException(OrderException.ACCESS_DENIED);
+        }
+
+        if (role.equals(UserRole.HUB)) {
+            HubFindInfoResponseDto hubInfo = hubFeignClient.findHubInfoByUserId(userId);
+            CompanyFindInfoResponseDto companyInfo = companyFeignClient.findCompanyInfoByCompanyId(companyId);
+            validateUuidMatch(hubInfo.hubId(), companyInfo.hubId());
+        }
+
+        if (role.equals(UserRole.COMPANY)) {
+            CompanyFindInfoResponseDto companyInfo = companyFeignClient.findCompanyInfoByUserId(userId);
+            validateUuidMatch(companyId, companyInfo.companyId());
+        }
+
+
+        return null;
+    }
+
+    private Set<UUID> getUniqueProductIds(List<OrderDetailsQuerydslResponseDto> data) {
+        return data.stream()
+                .map(OrderDetailsQuerydslResponseDto::productId)
+                .collect(Collectors.toSet());
     }
 
     private void validateUuidMatch(UUID expectedId, UUID actualId) {
