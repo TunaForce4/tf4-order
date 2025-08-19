@@ -112,17 +112,7 @@ public class OrderService {
             UUID userId,
             UserRole role
     ) {
-        // 권한 - 마스터 또는 본인 허브만 조회 가능
-        // 배송 담당자 또는 업체 담당자의 경우 - 허브 주문 내역 조회 불가
-        if (role.equals(UserRole.DELIVERY) || role.equals(UserRole.COMPANY)) {
-            throw new CustomRuntimeException(OrderException.ACCESS_DENIED);
-        }
-
-        // 허브 담당자의 경우 - 조회하려는 허브가 본인의 허브인지 확인
-        if (role.equals(UserRole.HUB)) {
-            HubFindInfoResponseDto hubInfo = hubFeignClient.findHubInfoByUserId(userId);
-            validateUuidMatch(hubInfo.hubId(), hubId);
-        }
+        validateHubOrdersByAuthority(hubId, userId, role);
 
         // 조회하려는 허브 정보 조회 및 소속 업체 조회
         HubFindInfoResponseDto hubInfo = hubFeignClient.findHubInfoByHubId(hubId);
@@ -148,6 +138,46 @@ public class OrderService {
     }
 
     public OrderFindPageResponseDto findCompanyOrderPage(Pageable pageable, UUID companyId, UUID userId, UserRole role) {
+        validateCompanyOrdersByAuthority(companyId, userId, role);
+
+        Page<OrderDetailsQuerydslResponseDto> page
+                = orderQuerydslRepository.findCompanyOrderPage(pageable, companyId);
+
+        // 조회하려는 허브 정보 및 소속 업체, 상품 정보 조회
+        CompanyFindInfoResponseDto companyInfo = companyFeignClient.findCompanyInfoByCompanyId(companyId);
+        HubFindInfoResponseDto hubInfo = hubFeignClient.findHubInfoByHubId(companyInfo.hubId());
+
+        Set<UUID> productIds = getUniqueProductIds(page.getContent());
+
+        ProductFindInfoListResponseDto productInfoList
+                = productFeignClient.findByIds(new ProductFindInfoListRequestDto(productIds.stream().toList()));
+
+        Map<UUID, String> products = productInfoList.toMap();
+
+        return OrderFindPageResponseDto.from(page, hubInfo.hubName(), companyInfo.companyName(), products);
+    }
+
+    /**
+     * Hub 주문 목록 조회 인가
+     */
+    private void validateHubOrdersByAuthority(UUID hubId, UUID userId, UserRole role) {
+        // 권한 - 마스터 또는 본인 허브만 조회 가능
+        // 배송 담당자 또는 업체 담당자의 경우 - 허브 주문 내역 조회 불가
+        if (role.equals(UserRole.DELIVERY) || role.equals(UserRole.COMPANY)) {
+            throw new CustomRuntimeException(OrderException.ACCESS_DENIED);
+        }
+
+        // 허브 담당자의 경우 - 조회하려는 허브가 본인의 허브인지 확인
+        if (role.equals(UserRole.HUB)) {
+            HubFindInfoResponseDto hubInfo = hubFeignClient.findHubInfoByUserId(userId);
+            validateUuidMatch(hubInfo.hubId(), hubId);
+        }
+    }
+
+    /**
+     * Company 주문 목록 조회 인가
+     */
+    private void validateCompanyOrdersByAuthority(UUID companyId, UUID userId, UserRole role) {
         // 권한 - 마스터 또는 소속 허브 담당자, 본인 업체만 조회 가능
         if (role.equals(UserRole.DELIVERY)) {
             throw new CustomRuntimeException(OrderException.ACCESS_DENIED);
@@ -165,22 +195,6 @@ public class OrderService {
             CompanyFindInfoResponseDto companyInfo = companyFeignClient.findCompanyInfoByUserId(userId);
             validateUuidMatch(companyId, companyInfo.companyId());
         }
-
-        Page<OrderDetailsQuerydslResponseDto> page
-                = orderQuerydslRepository.findCompanyOrderPage(pageable, companyId);
-
-        // 조회하려는 허브 정보 및 소속 업체, 상품 정보 조회
-        CompanyFindInfoResponseDto companyInfo = companyFeignClient.findCompanyInfoByCompanyId(companyId);
-        HubFindInfoResponseDto hubInfo = hubFeignClient.findHubInfoByHubId(companyInfo.hubId());
-
-        Set<UUID> productIds = getUniqueProductIds(page.getContent());
-
-        ProductFindInfoListResponseDto productInfoList
-                = productFeignClient.findByIds(new ProductFindInfoListRequestDto(productIds.stream().toList()));
-
-        Map<UUID, String> products = productInfoList.toMap();
-
-        return OrderFindPageResponseDto.from(page, hubInfo.hubName(), companyInfo.companyName(), products);
     }
 
     private void validateUuidMatch(UUID expectedId, UUID actualId) {
