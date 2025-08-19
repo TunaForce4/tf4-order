@@ -16,4 +16,7 @@ public interface HubFeignClient {
 
     @GetMapping("/find-by-user-id/{userId}")
     HubFindInfoResponseDto findHubInfoByUserId(@PathVariable("userId") UUID userId);
+
+    @GetMapping("/find-by-hub-id/{hubId}")
+    HubFindInfoResponseDto findHubInfoByHubId(@PathVariable("hubId") UUID hubId);
 }

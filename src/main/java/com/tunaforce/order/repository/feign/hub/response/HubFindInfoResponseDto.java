@@ -3,6 +3,7 @@ package com.tunaforce.order.repository.feign.hub.response;
 import java.util.UUID;
 
 public record HubFindInfoResponseDto(
-        UUID hubId
+        UUID hubId,
+        String hubName
 ) {
 }
