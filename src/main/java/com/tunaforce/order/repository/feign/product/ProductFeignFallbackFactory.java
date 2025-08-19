@@ -2,7 +2,9 @@ package com.tunaforce.order.repository.feign.product;
 
 import com.tunaforce.order.common.exception.CustomRuntimeException;
 import com.tunaforce.order.common.exception.OrderException;
+import com.tunaforce.order.repository.feign.product.dto.request.ProductFindInfoListRequestDto;
 import com.tunaforce.order.repository.feign.product.dto.request.ProductReduceStockRequestDto;
+import com.tunaforce.order.repository.feign.product.dto.response.ProductFindInfoListResponseDto;
 import com.tunaforce.order.repository.feign.product.dto.response.ProductFindInfoResponseDto;
 import com.tunaforce.order.repository.feign.product.dto.response.ProductReduceStockResponseDto;
 import feign.FeignException;
@@ -22,6 +24,11 @@ public class ProductFeignFallbackFactory implements FallbackFactory<ProductFeign
 
             @Override
             public ProductFindInfoResponseDto findById(UUID productId) {
+                return null;
+            }
+
+            @Override
+            public ProductFindInfoListResponseDto findByIds(ProductFindInfoListRequestDto productFindInfoListRequestDto) {
                 return null;
             }
 

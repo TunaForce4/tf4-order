@@ -1,6 +1,8 @@
 package com.tunaforce.order.repository.feign.product;
 
+import com.tunaforce.order.repository.feign.product.dto.request.ProductFindInfoListRequestDto;
 import com.tunaforce.order.repository.feign.product.dto.request.ProductReduceStockRequestDto;
+import com.tunaforce.order.repository.feign.product.dto.response.ProductFindInfoListResponseDto;
 import com.tunaforce.order.repository.feign.product.dto.response.ProductFindInfoResponseDto;
 import com.tunaforce.order.repository.feign.product.dto.response.ProductReduceStockResponseDto;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -18,6 +20,11 @@ public interface ProductFeignClient {
 
     @GetMapping("/find-by-id/{productId}")
     ProductFindInfoResponseDto findById(@PathVariable("productId") UUID productId);
+
+    @PostMapping("/find-by-ids")
+    ProductFindInfoListResponseDto findByIds(
+            @RequestBody ProductFindInfoListRequestDto productFindInfoListRequestDto
+    );
 
     @PatchMapping("/{productId}/decrease-stock")
     ProductReduceStockResponseDto reduceStock(
