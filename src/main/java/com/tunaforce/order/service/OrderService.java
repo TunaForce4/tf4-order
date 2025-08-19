@@ -153,30 +153,45 @@ public class OrderService {
             throw new CustomRuntimeException(OrderException.ACCESS_DENIED);
         }
 
+        // 허브 담당자의 경우 - 본인의 조회하려는 업체가 본인 허브의 소속 업체인지 확인
         if (role.equals(UserRole.HUB)) {
             HubFindInfoResponseDto hubInfo = hubFeignClient.findHubInfoByUserId(userId);
             CompanyFindInfoResponseDto companyInfo = companyFeignClient.findCompanyInfoByCompanyId(companyId);
             validateUuidMatch(hubInfo.hubId(), companyInfo.hubId());
         }
 
+        // 업체 담당자의 경우 - 조회하려는 허브가 본인의 허브인지 확인
         if (role.equals(UserRole.COMPANY)) {
             CompanyFindInfoResponseDto companyInfo = companyFeignClient.findCompanyInfoByUserId(userId);
             validateUuidMatch(companyId, companyInfo.companyId());
         }
 
+        Page<OrderDetailsQuerydslResponseDto> page
+                = orderQuerydslRepository.findCompanyOrderPage(pageable, companyId);
 
-        return null;
-    }
+        // 조회하려는 허브 정보 및 소속 업체, 상품 정보 조회
+        CompanyFindInfoResponseDto companyInfo = companyFeignClient.findCompanyInfoByCompanyId(companyId);
+        HubFindInfoResponseDto hubInfo = hubFeignClient.findHubInfoByHubId(companyInfo.hubId());
 
-    private Set<UUID> getUniqueProductIds(List<OrderDetailsQuerydslResponseDto> data) {
-        return data.stream()
-                .map(OrderDetailsQuerydslResponseDto::productId)
-                .collect(Collectors.toSet());
+        Set<UUID> productIds = getUniqueProductIds(page.getContent());
+
+        ProductFindInfoListResponseDto productInfoList
+                = productFeignClient.findByIds(new ProductFindInfoListRequestDto(productIds.stream().toList()));
+
+        Map<UUID, String> products = productInfoList.toMap();
+
+        return OrderFindPageResponseDto.from(page, hubInfo.hubName(), companyInfo.companyName(), products);
     }
 
     private void validateUuidMatch(UUID expectedId, UUID actualId) {
         if (!expectedId.equals(actualId)) {
             throw new CustomRuntimeException(OrderException.ACCESS_DENIED);
         }
+    }
+
+    private Set<UUID> getUniqueProductIds(List<OrderDetailsQuerydslResponseDto> data) {
+        return data.stream()
+                .map(OrderDetailsQuerydslResponseDto::productId)
+                .collect(Collectors.toSet());
     }
 }

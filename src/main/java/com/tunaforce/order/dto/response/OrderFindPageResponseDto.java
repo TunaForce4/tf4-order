@@ -50,4 +50,33 @@ public record OrderFindPageResponseDto(
                 .data(data)
                 .build();
     }
+
+    public static OrderFindPageResponseDto from(
+            Page<OrderDetailsQuerydslResponseDto> page,
+            String hubName,
+            String companyName,
+            Map<UUID, String> products
+    ) {
+        List<OrderFindDetailResponseDto> data = page.getContent().stream()
+                .map(order -> OrderFindDetailResponseDto.builder()
+                        .orderId(order.orderId())
+                        .hubName(hubName)
+                        .receiveCompanyName(companyName)
+                        .productName(products.get(order.productId()))
+                        .orderQuantity(order.orderQuantity())
+                        .orderPrice(order.orderPrice())
+                        .requestMemo(order.requestMemo())
+                        .createdAt(order.createdAt())
+                        .updatedAt(order.updatedAt())
+                        .build())
+                .toList();
+
+        return OrderFindPageResponseDto.builder()
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .currentPage(page.getNumber())
+                .currentSize(page.getNumberOfElements())
+                .data(data)
+                .build();
+    }
 }

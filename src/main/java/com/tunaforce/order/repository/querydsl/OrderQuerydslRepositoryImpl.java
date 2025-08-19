@@ -10,6 +10,7 @@ import com.tunaforce.order.entity.QOrder;
 import com.tunaforce.order.repository.querydsl.dto.response.OrderDetailsQuerydslResponseDto;
 import com.tunaforce.order.repository.querydsl.dto.response.QOrderDetailsQuerydslResponseDto;
 import lombok.RequiredArgsConstructor;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -34,6 +35,22 @@ public class OrderQuerydslRepositoryImpl implements OrderQuerydslRepository {
                 order.receiveCompanyId.in(companyIds)
         };
 
+        return getOrderDetailsQuerydslResponseDtos(pageable, whereClause);
+    }
+
+    @Override
+    public Page<OrderDetailsQuerydslResponseDto> findCompanyOrderPage(Pageable pageable, UUID companyId) {
+        Predicate[] whereClause = {
+                order.receiveCompanyId.eq(companyId)
+        };
+
+        return getOrderDetailsQuerydslResponseDtos(pageable, whereClause);
+    }
+
+    private Page<OrderDetailsQuerydslResponseDto> getOrderDetailsQuerydslResponseDtos(
+            Pageable pageable,
+            Predicate[] whereClause
+    ) {
         List<OrderDetailsQuerydslResponseDto> records = queryFactory.select(new QOrderDetailsQuerydslResponseDto(
                         order.id,
                         order.receiveCompanyId,

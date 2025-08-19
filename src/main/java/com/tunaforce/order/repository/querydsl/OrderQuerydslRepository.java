@@ -13,4 +13,6 @@ public interface OrderQuerydslRepository {
      * 허브 소속 업체들에 대한 페이지네이션
      */
     Page<OrderDetailsQuerydslResponseDto> findHubOrderPage(Pageable pageable, List<UUID> companyIds);
+
+    Page<OrderDetailsQuerydslResponseDto> findCompanyOrderPage(Pageable pageable, UUID companyId);
 }
