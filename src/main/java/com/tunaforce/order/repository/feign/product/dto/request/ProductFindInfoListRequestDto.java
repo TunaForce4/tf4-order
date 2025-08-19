@@ -4,6 +4,6 @@ import java.util.List;
 import java.util.UUID;
 
 public record ProductFindInfoListRequestDto(
-        List<UUID> productId
+        List<UUID> productIds
 ) {
 }
