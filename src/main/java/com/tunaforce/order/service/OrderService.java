@@ -51,7 +51,7 @@ public class OrderService {
 
     @Transactional
     public void createOrder(OrderCreateRequestDto request, UUID userId, UserRole role) {
-        validateOrderCreateByAuthority(request.productId(), request.receiveCompanyId(), userId, role);
+        validateCreateOrderByAuthority(request.productId(), request.receiveCompanyId(), userId, role);
 
         // 주문 생성
         Order order = Order.builder()
@@ -87,7 +87,7 @@ public class OrderService {
      * 특정 허브 소속 업체들의 주문 내역 조회
      */
     public OrderFindPageResponseDto findHubOrderPage(Pageable pageable, UUID hubId, UUID userId, UserRole role) {
-        validateHubOrdersByAuthority(hubId, userId, role);
+        validateFindHubOrderPageByAuthority(hubId, userId, role);
 
         // 조회하려는 허브 정보 조회 및 소속 업체 조회
         HubFindInfoResponseDto hubInfo = hubFeignClient.findHubInfoByHubId(hubId);
@@ -116,7 +116,7 @@ public class OrderService {
      * 특정 업체의 주문 내역 조회
      */
     public OrderFindPageResponseDto findCompanyOrderPage(Pageable pageable, UUID companyId, UUID userId, UserRole role) {
-        validateCompanyOrdersByAuthority(companyId, userId, role);
+        validateFindCompanyOrderPageByAuthority(companyId, userId, role);
 
         Page<OrderDetailsQuerydslResponseDto> page
                 = orderQuerydslRepository.findCompanyOrderPage(pageable, companyId);
@@ -138,7 +138,7 @@ public class OrderService {
     /**
      * 주문 생성 권한 검증
      */
-    private void validateOrderCreateByAuthority(UUID productId, UUID receiveCompanyId, UUID userId, UserRole role) {
+    private void validateCreateOrderByAuthority(UUID productId, UUID receiveCompanyId, UUID userId, UserRole role) {
         CompanyFindInfoResponseDto requestedCompany = companyFeignClient.findCompanyInfoByCompanyId(receiveCompanyId);
         ProductFindInfoResponseDto requestedProduct = productFeignClient.findById(productId);
 
@@ -167,7 +167,7 @@ public class OrderService {
     /**
      * Hub 주문 목록 조회 권한 검증
      */
-    private void validateHubOrdersByAuthority(UUID hubId, UUID userId, UserRole role) {
+    private void validateFindHubOrderPageByAuthority(UUID hubId, UUID userId, UserRole role) {
         // 권한 - 마스터 또는 본인 허브만 조회 가능
         // 배송 담당자 또는 업체 담당자의 경우 - 허브 주문 내역 조회 불가
         if (role.equals(UserRole.DELIVERY) || role.equals(UserRole.COMPANY)) {
@@ -184,7 +184,7 @@ public class OrderService {
     /**
      * Company 주문 목록 조회 권한 검증
      */
-    private void validateCompanyOrdersByAuthority(UUID companyId, UUID userId, UserRole role) {
+    private void validateFindCompanyOrderPageByAuthority(UUID companyId, UUID userId, UserRole role) {
         // 권한 - 마스터 또는 소속 허브 담당자, 본인 업체만 조회 가능
         if (role.equals(UserRole.DELIVERY)) {
             throw new CustomRuntimeException(OrderException.ACCESS_DENIED);
