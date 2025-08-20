@@ -19,11 +19,11 @@ import java.util.UUID;
 )
 public interface ProductFeignClient {
 
-    @GetMapping("/find-by-id/{productId}")
-    ProductFindInfoResponseDto findById(@PathVariable("productId") UUID productId);
+    @GetMapping("/find-by-product-id/{productId}")
+    ProductFindInfoResponseDto findByProductId(@PathVariable("productId") UUID productId);
 
-    @PostMapping("/find-by-ids")
-    ProductFindInfoListResponseDto findByIds(
+    @PostMapping("/find-by-product-ids")
+    ProductFindInfoListResponseDto findByProductIds(
             @RequestBody ProductFindInfoListRequestDto productFindInfoListRequestDto
     );
 

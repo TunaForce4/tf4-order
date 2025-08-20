@@ -5,8 +5,8 @@ import com.tunaforce.order.common.exception.OrderException;
 import com.tunaforce.order.dto.request.OrderCreateRequestDto;
 import com.tunaforce.order.dto.request.OrderUpdateRequestDto;
 import com.tunaforce.order.dto.response.OrderDeleteResponseDto;
-import com.tunaforce.order.dto.response.OrderFindPageResponseDto;
 import com.tunaforce.order.dto.response.OrderFindDetailResponseDto;
+import com.tunaforce.order.dto.response.OrderFindPageResponseDto;
 import com.tunaforce.order.entity.Order;
 import com.tunaforce.order.entity.OrderStatus;
 import com.tunaforce.order.entity.UserRole;
@@ -101,7 +101,7 @@ public class OrderService {
 
         validateFindOrderByAuthority(orderDetails.receiveCompanyId(), orderDetails.createdBy(), userId, role);
 
-        ProductFindInfoResponseDto productInfo = productFeignClient.findById(orderDetails.productId());
+        ProductFindInfoResponseDto productInfo = productFeignClient.findByProductId(orderDetails.productId());
         CompanyFindInfoResponseDto companyInfo
                 = companyFeignClient.findCompanyInfoByCompanyId(orderDetails.receiveCompanyId());
 
@@ -130,7 +130,7 @@ public class OrderService {
         Set<UUID> productIds = getUniqueProductIds(page.getContent());
 
         ProductFindInfoListResponseDto productInfoList
-                = productFeignClient.findByIds(new ProductFindInfoListRequestDto(productIds.stream().toList()));
+                = productFeignClient.findByProductIds(ProductFindInfoListRequestDto.from(productIds.stream().toList()));
 
         Map<UUID, String> products = productInfoList.toMap();
 
@@ -153,7 +153,7 @@ public class OrderService {
         Set<UUID> productIds = getUniqueProductIds(page.getContent());
 
         ProductFindInfoListResponseDto productInfoList
-                = productFeignClient.findByIds(new ProductFindInfoListRequestDto(productIds.stream().toList()));
+                = productFeignClient.findByProductIds(ProductFindInfoListRequestDto.from(productIds.stream().toList()));
 
         Map<UUID, String> products = productInfoList.toMap();
 
@@ -236,7 +236,7 @@ public class OrderService {
      */
     private void validateCreateOrderByAuthority(UUID productId, UUID receiveCompanyId, UUID userId, UserRole role) {
         CompanyFindInfoResponseDto requestedCompany = companyFeignClient.findCompanyInfoByCompanyId(receiveCompanyId);
-        ProductFindInfoResponseDto requestedProduct = productFeignClient.findById(productId);
+        ProductFindInfoResponseDto requestedProduct = productFeignClient.findByProductId(productId);
 
         // 수령 업체(주문 업체)와 주문하려는 상품의 등록 업체가 동일할 경우 주문 불가능
         validateOwnProduct(requestedCompany.companyId(), requestedProduct.productId());

@@ -5,10 +5,6 @@ import java.util.UUID;
 public record ProductFindInfoResponseDto(
         UUID productId,
 
-        UUID companyId,
-
-        UUID hubId,
-
         String productName
 ) {
 }

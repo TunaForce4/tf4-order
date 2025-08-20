@@ -25,12 +25,12 @@ public class ProductFeignFallbackFactory implements FallbackFactory<ProductFeign
         return new ProductFeignClient() {
 
             @Override
-            public ProductFindInfoResponseDto findById(UUID productId) {
+            public ProductFindInfoResponseDto findByProductId(UUID productId) {
                 return null;
             }
 
             @Override
-            public ProductFindInfoListResponseDto findByIds(ProductFindInfoListRequestDto productFindInfoListRequestDto) {
+            public ProductFindInfoListResponseDto findByProductIds(ProductFindInfoListRequestDto productFindInfoListRequestDto) {
                 return null;
             }
 

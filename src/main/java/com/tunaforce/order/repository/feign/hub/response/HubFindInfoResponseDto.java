@@ -4,6 +4,7 @@ import java.util.UUID;
 
 public record HubFindInfoResponseDto(
         UUID hubId,
+
         String hubName
 ) {
 }
