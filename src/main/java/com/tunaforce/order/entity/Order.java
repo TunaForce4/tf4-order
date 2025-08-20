@@ -63,6 +63,10 @@ public class Order extends Timestamped {
         this.requestMemo = requestDto.requestMemo();
     }
 
+    public void updateOrderPrice(Integer price) {
+        this.price = price;
+    }
+
     public boolean isBeforeShipping() {
         return this.status.getIndex() < OrderStatus.SHIPPING.getIndex();
     }

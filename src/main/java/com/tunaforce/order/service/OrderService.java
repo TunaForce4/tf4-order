@@ -25,6 +25,7 @@ import com.tunaforce.order.repository.feign.product.dto.request.ProductUpdateSto
 import com.tunaforce.order.repository.feign.product.dto.response.ProductFindInfoListResponseDto;
 import com.tunaforce.order.repository.feign.product.dto.response.ProductFindInfoResponseDto;
 import com.tunaforce.order.repository.feign.product.dto.response.ProductReduceStockResponseDto;
+import com.tunaforce.order.repository.feign.product.dto.response.ProductUpdateStockResponseDto;
 import com.tunaforce.order.repository.jpa.OrderJpaRepository;
 import com.tunaforce.order.repository.querydsl.OrderQuerydslRepository;
 import com.tunaforce.order.repository.querydsl.dto.response.OrderDetailsQuerydslResponseDto;
@@ -178,11 +179,13 @@ public class OrderService {
 
         // 재고 변경
         if (!orderQuantity.equals(updateQuantity)) {
-            productFeignClient.updateStock(
+            ProductUpdateStockResponseDto updateStockResponse = productFeignClient.updateStock(
                     order.getProductId(),
                     new ProductUpdateStockRequestDto(orderQuantity, updateQuantity),
                     userId
             );
+
+            order.updateOrderPrice(updateStockResponse.price());
         }
 
         order.update(request);

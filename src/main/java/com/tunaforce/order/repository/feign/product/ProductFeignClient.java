@@ -14,7 +14,7 @@ import java.util.UUID;
 
 @FeignClient(
         name = "products",
-        path = "/internal/products/order-product",
+        path = "/internal/products",
         fallbackFactory = ProductFeignFallbackFactory.class
 )
 public interface ProductFeignClient {
@@ -34,7 +34,7 @@ public interface ProductFeignClient {
             @RequestHeader("X-User-Id") UUID userId
     );
 
-    @PatchMapping("/{productId}/update-stock")
+    @PatchMapping("/{productId}/update-order-quantity")
     ProductUpdateStockResponseDto updateStock(
             @PathVariable UUID productId,
             @RequestBody ProductUpdateStockRequestDto productUpdateStockRequestDto,
