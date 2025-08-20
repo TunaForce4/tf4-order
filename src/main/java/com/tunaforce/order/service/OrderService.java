@@ -236,22 +236,22 @@ public class OrderService {
         // 수령 업체(주문 업체)와 주문하려는 상품의 등록 업체가 동일할 경우 주문 불가능
         validateOwnProduct(requestedCompany.companyId(), requestedProduct.productId());
 
-        // 허브 담당자일 경우 - 주문하려는 업체가 소속 업체인지 검증
+        // 허브 담당자일 경우 - 주문하려는 상품의 담당 업체가 소속 업체인지 검증
         if (role.equals(UserRole.HUB)) {
             HubFindInfoResponseDto userHub = hubFeignClient.findHubInfoByUserId(userId);
-            validateUuidMatch(userHub.hubId(), requestedCompany.hubId());
+            validateOwnProduct(userHub.hubId(), requestedCompany.hubId());
         }
 
         // 배송 담당자의 경우 - 주문하려는 업체가 본인 담당 허브의 소속 업체인지 검증
         if (role.equals(UserRole.DELIVERY)) {
             DeliveryFindInfoResponseDto userDelivery = deliveryFeignClient.findDeliveryInfoByUserId(userId);
-            validateUuidMatch(userDelivery.hubId(), requestedCompany.hubId());
+            validateOwnProduct(userDelivery.hubId(), requestedCompany.hubId());
         }
 
         // 업체 담당자의 경우 - 주문하려는 업체가 본인의 업체인지 검증
         if (role.equals(UserRole.COMPANY)) {
             CompanyFindInfoResponseDto userCompany = companyFeignClient.findCompanyInfoByUserId(userId);
-            validateUuidMatch(userCompany.companyId(), requestedCompany.companyId());
+            validateOwnProduct(userCompany.companyId(), requestedCompany.companyId());
         }
     }
 
@@ -308,7 +308,7 @@ public class OrderService {
         // 업체 담당자의 경우 - 조회하려는 허브가 본인의 허브인지 확인
         if (role.equals(UserRole.COMPANY)) {
             CompanyFindInfoResponseDto userCompany = companyFeignClient.findCompanyInfoByUserId(userId);
-            validateUuidMatch(companyId, userCompany.companyId());
+            validateUuidMatch(userCompany.companyId(), companyId);
         }
     }
 
@@ -316,7 +316,7 @@ public class OrderService {
      * 주문 수정/삭제용 권한 검증
      */
     private void validateUpdateOrDeleteOrderByAuthority(UUID receiveCompanyId, UUID userId, UserRole role) {
-        // 주문 수정/삭제는 마스터 허브만 가능
+        // 주문 수정/삭제는 마스터, 허브만 가능
         if (role.equals(UserRole.DELIVERY) || role.equals(UserRole.COMPANY)) {
             throw new CustomRuntimeException(OrderException.ACCESS_DENIED);
         }
