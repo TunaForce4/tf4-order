@@ -1,6 +1,5 @@
 package com.tunaforce.order.service;
 
-import ch.qos.logback.core.joran.conditional.IfAction;
 import com.tunaforce.order.common.exception.CustomRuntimeException;
 import com.tunaforce.order.common.exception.OrderException;
 import com.tunaforce.order.dto.request.OrderCreateRequestDto;
@@ -117,7 +116,7 @@ public class OrderService {
 
         // 조회하려는 허브 정보 조회 및 소속 업체 조회
         HubFindInfoResponseDto hubInfo = hubFeignClient.findHubInfoByHubId(hubId);
-        CompanyFindInfoListResponseDto companyInfos = companyFeignClient.findCompanyInfoByHubId(hubId);
+        CompanyFindInfoListResponseDto companyInfos = companyFeignClient.findCompanyInfoListByHubId(hubId);
 
         List<UUID> companyIds = companyInfos.data().stream()
                 .map(CompanyFindInfoResponseDto::companyId)

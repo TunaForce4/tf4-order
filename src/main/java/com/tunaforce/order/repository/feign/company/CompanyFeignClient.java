@@ -22,5 +22,5 @@ public interface CompanyFeignClient {
     CompanyFindInfoResponseDto findCompanyInfoByCompanyId(@PathVariable("companyId") UUID companyId);
 
     @GetMapping("/find-by-hub-id/{hubId}")
-    CompanyFindInfoListResponseDto findCompanyInfoByHubId(@PathVariable("hubId") UUID hubId);
+    CompanyFindInfoListResponseDto findCompanyInfoListByHubId(@PathVariable("hubId") UUID hubId);
 }
