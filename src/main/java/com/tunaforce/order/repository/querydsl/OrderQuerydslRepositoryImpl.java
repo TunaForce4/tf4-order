@@ -32,7 +32,8 @@ public class OrderQuerydslRepositoryImpl implements OrderQuerydslRepository {
     @Override
     public Page<OrderDetailsQuerydslResponseDto> findHubOrderPage(Pageable pageable, List<UUID> companyIds) {
         Predicate[] whereClause = {
-                order.receiveCompanyId.in(companyIds)
+                order.receiveCompanyId.in(companyIds),
+                order.deletedAt.isNull(),
         };
 
         return getOrderDetailsQuerydslResponseDtos(pageable, whereClause);
@@ -41,7 +42,8 @@ public class OrderQuerydslRepositoryImpl implements OrderQuerydslRepository {
     @Override
     public Page<OrderDetailsQuerydslResponseDto> findCompanyOrderPage(Pageable pageable, UUID companyId) {
         Predicate[] whereClause = {
-                order.receiveCompanyId.eq(companyId)
+                order.receiveCompanyId.eq(companyId),
+                order.deletedAt.isNull(),
         };
 
         return getOrderDetailsQuerydslResponseDtos(pageable, whereClause);
