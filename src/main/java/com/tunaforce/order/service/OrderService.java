@@ -51,27 +51,7 @@ public class OrderService {
 
     @Transactional
     public void createOrder(OrderCreateRequestDto request, UUID userId, UserRole role) {
-        // 유저 역할에 따라 주문 생성에 요청된 업체와 로그인한 유저의 허브 또는 업체와의 관계가 유효한지 검증
-        // 허브 담당자일 경우 - 주문하려는 업체가 소속 업체인지 검증
-        if (role.equals(UserRole.HUB)) {
-            HubFindInfoResponseDto hubInfo = hubFeignClient.findHubInfoByUserId(userId);
-            ProductFindInfoResponseDto productInfo = productFeignClient.findById(request.productId());
-            validateUuidMatch(hubInfo.hubId(), productInfo.hubId());
-        }
-
-        // 업체 담당자의 경우 - 주문하려는 업체가 담당 업체인지 확인
-        if (role.equals(UserRole.COMPANY)) {
-            CompanyFindInfoResponseDto companyInfo = companyFeignClient.findCompanyInfoByUserId(userId);
-            ProductFindInfoResponseDto productInfo = productFeignClient.findById(request.productId());
-            validateUuidMatch(companyInfo.companyId(), productInfo.companyId());
-        }
-
-        // 배송 담당자의 경우 - 주문하려는 업체가 본인 소속 허브의 소속 업체인지 확인
-        if (role.equals(UserRole.DELIVERY)) {
-            DeliveryFindInfoResponseDto deliveryInfo = deliveryFeignClient.findDeliveryInfoByUserId(userId);
-            ProductFindInfoResponseDto productInfo = productFeignClient.findById(request.productId());
-            validateUuidMatch(deliveryInfo.hubId(), productInfo.hubId());
-        }
+        validateOrderCreateByAuthority(request.productId(), request.receiveCompanyId(), userId, role);
 
         // 주문 생성
         Order order = Order.builder()
@@ -106,12 +86,7 @@ public class OrderService {
     /**
      * 특정 허브 소속 업체들의 주문 내역 조회
      */
-    public OrderFindPageResponseDto findHubOrderPage(
-            Pageable pageable,
-            UUID hubId,
-            UUID userId,
-            UserRole role
-    ) {
+    public OrderFindPageResponseDto findHubOrderPage(Pageable pageable, UUID hubId, UUID userId, UserRole role) {
         validateHubOrdersByAuthority(hubId, userId, role);
 
         // 조회하려는 허브 정보 조회 및 소속 업체 조회
@@ -137,6 +112,9 @@ public class OrderService {
         return OrderFindPageResponseDto.from(page, hubInfo.hubName(), companies, products);
     }
 
+    /**
+     * 특정 업체의 주문 내역 조회
+     */
     public OrderFindPageResponseDto findCompanyOrderPage(Pageable pageable, UUID companyId, UUID userId, UserRole role) {
         validateCompanyOrdersByAuthority(companyId, userId, role);
 
@@ -158,7 +136,36 @@ public class OrderService {
     }
 
     /**
-     * Hub 주문 목록 조회 인가
+     * 주문 생성 권한 검증
+     */
+    private void validateOrderCreateByAuthority(UUID productId, UUID receiveCompanyId, UUID userId, UserRole role) {
+        CompanyFindInfoResponseDto requestedCompany = companyFeignClient.findCompanyInfoByCompanyId(receiveCompanyId);
+        ProductFindInfoResponseDto requestedProduct = productFeignClient.findById(productId);
+
+        // 수령 업체(주문 업체)와 주문하려는 상품의 등록 업체가 동일할 경우 주문 불가능
+        validateOwnProduct(requestedCompany.companyId(), requestedProduct.productId());
+
+        // 허브 담당자일 경우 - 주문하려는 업체가 소속 업체인지 검증
+        if (role.equals(UserRole.HUB)) {
+            HubFindInfoResponseDto userHub = hubFeignClient.findHubInfoByUserId(userId);
+            validateUuidMatch(userHub.hubId(), requestedCompany.hubId());
+        }
+
+        // 배송 담당자의 경우 - 주문하려는 업체가 본인 담당 허브의 소속 업체인지 검증
+        if (role.equals(UserRole.DELIVERY)) {
+            DeliveryFindInfoResponseDto userDelivery = deliveryFeignClient.findDeliveryInfoByUserId(userId);
+            validateUuidMatch(userDelivery.hubId(), requestedCompany.hubId());
+        }
+
+        // 업체 담당자의 경우 - 주문하려는 업체가 본인의 업체인지 검증
+        if (role.equals(UserRole.COMPANY)) {
+            CompanyFindInfoResponseDto userCompany = companyFeignClient.findCompanyInfoByUserId(userId);
+            validateUuidMatch(userCompany.companyId(), requestedCompany.companyId());
+        }
+    }
+
+    /**
+     * Hub 주문 목록 조회 권한 검증
      */
     private void validateHubOrdersByAuthority(UUID hubId, UUID userId, UserRole role) {
         // 권한 - 마스터 또는 본인 허브만 조회 가능
@@ -175,7 +182,7 @@ public class OrderService {
     }
 
     /**
-     * Company 주문 목록 조회 인가
+     * Company 주문 목록 조회 권한 검증
      */
     private void validateCompanyOrdersByAuthority(UUID companyId, UUID userId, UserRole role) {
         // 권한 - 마스터 또는 소속 허브 담당자, 본인 업체만 조회 가능
@@ -200,6 +207,15 @@ public class OrderService {
     private void validateUuidMatch(UUID expectedId, UUID actualId) {
         if (!expectedId.equals(actualId)) {
             throw new CustomRuntimeException(OrderException.ACCESS_DENIED);
+        }
+    }
+
+    /**
+     * 자신의 허브 또는 업체가 등록한 상품이면 주문 불가능
+     */
+    private void validateOwnProduct(UUID expectedId, UUID actualId) {
+        if (expectedId.equals(actualId)) {
+            throw new CustomRuntimeException(OrderException.CANNOT_ORDER_OWN_PRODUCT);
         }
     }
 
