@@ -4,9 +4,11 @@ import com.tunaforce.order.common.exception.CustomRuntimeException;
 import com.tunaforce.order.common.exception.OrderException;
 import com.tunaforce.order.repository.feign.product.dto.request.ProductFindInfoListRequestDto;
 import com.tunaforce.order.repository.feign.product.dto.request.ProductReduceStockRequestDto;
+import com.tunaforce.order.repository.feign.product.dto.request.ProductUpdateStockRequestDto;
 import com.tunaforce.order.repository.feign.product.dto.response.ProductFindInfoListResponseDto;
 import com.tunaforce.order.repository.feign.product.dto.response.ProductFindInfoResponseDto;
 import com.tunaforce.order.repository.feign.product.dto.response.ProductReduceStockResponseDto;
+import com.tunaforce.order.repository.feign.product.dto.response.ProductUpdateStockResponseDto;
 import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.openfeign.FallbackFactory;
@@ -47,6 +49,11 @@ public class ProductFeignFallbackFactory implements FallbackFactory<ProductFeign
                 }
 
                 throw new CustomRuntimeException(OrderException.PRODUCT_SERVICE_UNAVAILABLE);
+            }
+
+            @Override
+            public ProductUpdateStockResponseDto updateStock(UUID productId, ProductUpdateStockRequestDto productUpdateStockRequestDto) {
+                return null;
             }
         };
     }

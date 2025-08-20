@@ -1,6 +1,7 @@
 package com.tunaforce.order.entity;
 
 import com.tunaforce.order.common.entity.Timestamped;
+import com.tunaforce.order.dto.request.OrderUpdateRequestDto;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -57,6 +58,19 @@ public class Order extends Timestamped {
         this.price = price;
     }
 
+    public void update(OrderUpdateRequestDto requestDto) {
+        this.quantity = requestDto.orderQuantity();
+        this.requestMemo = requestDto.requestMemo();
+    }
+
+    public boolean isBeforeShipping() {
+        return this.status.getIndex() < OrderStatus.SHIPPING.getIndex();
+    }
+
+    public boolean isDeletableStatus() {
+        return this.status.equals(OrderStatus.DELIVERED) || this.status.equals(OrderStatus.CANCELLED);
+    }
+
     // set order status
     public void setStatusPrepared() {
         this.status = OrderStatus.PREPARED;
@@ -76,5 +90,9 @@ public class Order extends Timestamped {
 
     public void setStatusDelivered() {
         this.status = OrderStatus.DELIVERED;
+    }
+
+    public void setStatusCancelled() {
+        this.status = OrderStatus.CANCELLED;
     }
 }

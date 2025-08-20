@@ -1,6 +1,9 @@
 package com.tunaforce.order.controller;
 
 import com.tunaforce.order.dto.request.OrderCreateRequestDto;
+import com.tunaforce.order.dto.request.OrderUpdateRequestDto;
+import com.tunaforce.order.dto.response.OrderDeleteResponseDto;
+import com.tunaforce.order.dto.response.OrderFindDetailResponseDto;
 import com.tunaforce.order.dto.response.OrderFindPageResponseDto;
 import com.tunaforce.order.entity.SortType;
 import com.tunaforce.order.entity.UserRole;
@@ -76,6 +79,46 @@ public class OrderController {
         SortType.validate(pageable.getSort());
 
         OrderFindPageResponseDto data = orderService.findCompanyOrderPage(pageable, companyId, userId, role);
+
+        return ResponseEntity.ok()
+                .body(data);
+    }
+
+    @PatchMapping("/{orderId}")
+    public ResponseEntity<Void> updateOrder(
+            @PathVariable UUID orderId,
+            @RequestBody OrderUpdateRequestDto orderUpdateRequestDto,
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader("X-Roles") String userRole
+    ) {
+        UserRole role = UserRole.of(userRole);
+        orderService.updateOrder(orderId, orderUpdateRequestDto, userId, role);
+
+        return ResponseEntity.noContent()
+                .build();
+    }
+
+    @PatchMapping("/{orderId}/cancel")
+    public ResponseEntity<Void> cancelOrder(
+            @PathVariable UUID orderId,
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader("X-Roles") String userRole
+    ) {
+        UserRole role = UserRole.of(userRole);
+        orderService.cancelOrder(orderId, userId, role);
+
+        return ResponseEntity.noContent()
+                .build();
+    }
+
+    @DeleteMapping("/{orderId}")
+    public ResponseEntity<OrderDeleteResponseDto> deleteOrder(
+            @PathVariable UUID orderId,
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader("X-Roles") String userRole
+    ) {
+        UserRole role = UserRole.of(userRole);
+        OrderDeleteResponseDto data = orderService.deleteOrder(orderId, userId, role);
 
         return ResponseEntity.ok()
                 .body(data);

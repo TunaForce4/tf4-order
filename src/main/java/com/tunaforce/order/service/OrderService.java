@@ -1,8 +1,11 @@
 package com.tunaforce.order.service;
 
+import ch.qos.logback.core.joran.conditional.IfAction;
 import com.tunaforce.order.common.exception.CustomRuntimeException;
 import com.tunaforce.order.common.exception.OrderException;
 import com.tunaforce.order.dto.request.OrderCreateRequestDto;
+import com.tunaforce.order.dto.request.OrderUpdateRequestDto;
+import com.tunaforce.order.dto.response.OrderDeleteResponseDto;
 import com.tunaforce.order.dto.response.OrderFindPageResponseDto;
 import com.tunaforce.order.dto.response.OrderFindDetailResponseDto;
 import com.tunaforce.order.entity.Order;
@@ -18,6 +21,7 @@ import com.tunaforce.order.repository.feign.hub.response.HubFindInfoResponseDto;
 import com.tunaforce.order.repository.feign.product.ProductFeignClient;
 import com.tunaforce.order.repository.feign.product.dto.request.ProductFindInfoListRequestDto;
 import com.tunaforce.order.repository.feign.product.dto.request.ProductReduceStockRequestDto;
+import com.tunaforce.order.repository.feign.product.dto.request.ProductUpdateStockRequestDto;
 import com.tunaforce.order.repository.feign.product.dto.response.ProductFindInfoListResponseDto;
 import com.tunaforce.order.repository.feign.product.dto.response.ProductFindInfoResponseDto;
 import com.tunaforce.order.repository.feign.product.dto.response.ProductReduceStockResponseDto;
@@ -48,6 +52,9 @@ public class OrderService {
     private final OrderJpaRepository orderJpaRepository;
     private final OrderQuerydslRepository orderQuerydslRepository;
 
+    /**
+     * 주문 생성
+     */
     @Transactional
     public void createOrder(OrderCreateRequestDto request, UUID userId, UserRole role) {
         validateCreateOrderByAuthority(request.productId(), request.receiveCompanyId(), userId, role);
@@ -78,10 +85,12 @@ public class OrderService {
         deliveryFeignClient.createOrderDelivery();
         order.setStatusReadyForShipment();
 
-        // 주문 영속화
         orderJpaRepository.save(order);
     }
 
+    /**
+     * 주문 단건 조회
+     */
     public OrderFindDetailResponseDto findOrderDetails(UUID orderId, UUID userId, UserRole role) {
         OrderDetailsQuerydslResponseDto orderDetails = orderQuerydslRepository.findOrder(orderId);
 
@@ -92,20 +101,6 @@ public class OrderService {
                 = companyFeignClient.findCompanyInfoByCompanyId(orderDetails.receiveCompanyId());
 
         return OrderFindDetailResponseDto.from(orderDetails, companyInfo.companyName(), productInfo.productName());
-    }
-
-    private void validateFindOrderByAuthority(UUID receiveCompanyId, UUID createdBy, UUID userId, UserRole role) {
-        // 허브 담당자의 경우 본인의 허브 소속 업체들의 주문 내역 조회 가능
-        if (role.equals(UserRole.HUB)) {
-            HubFindInfoResponseDto userHub = hubFeignClient.findHubInfoByUserId(userId);
-            CompanyFindInfoResponseDto companyInfo = companyFeignClient.findCompanyInfoByCompanyId(receiveCompanyId);
-            validateUuidMatch(userHub.hubId(), companyInfo.hubId());
-        }
-
-        // 배송 담당자나 업체 담당자의 경우 자신의 주문 내역만 조회 가능
-        if (role.equals(UserRole.DELIVERY) || role.equals(UserRole.COMPANY)) {
-            validateUuidMatch(userId, createdBy);
-        }
     }
 
     /**
@@ -138,7 +133,7 @@ public class OrderService {
     }
 
     /**
-     * 특정 업체의 주문 내역 조회
+     * 특정 업체 주문 내역 조회
      */
     public OrderFindPageResponseDto findCompanyOrderPage(Pageable pageable, UUID companyId, UUID userId, UserRole role) {
         validateFindCompanyOrderPageByAuthority(companyId, userId, role);
@@ -158,6 +153,71 @@ public class OrderService {
         Map<UUID, String> products = productInfoList.toMap();
 
         return OrderFindPageResponseDto.from(page, hubInfo.hubName(), companyInfo.companyName(), products);
+    }
+
+    /**
+     * 주문 수정
+     */
+    @Transactional
+    public void updateOrder(UUID orderId, OrderUpdateRequestDto request, UUID userId, UserRole role) {
+        Order order = findById(orderId);
+
+        if (order.isBeforeShipping()) {
+            throw new CustomRuntimeException(OrderException.CANNOT_UPDATE_ON_SHIPPING);
+        }
+
+        validateUpdateOrDeleteOrderByAuthority(order.getReceiveCompanyId(), userId, role);
+
+        Integer orderQuantity = order.getQuantity();
+        Integer updateQuantity = request.orderQuantity();
+
+        // 재고 변경
+        if (!orderQuantity.equals(updateQuantity)) {
+            productFeignClient
+                    .updateStock(order.getProductId(), new ProductUpdateStockRequestDto(orderQuantity, updateQuantity));
+        }
+
+        order.update(request);
+    }
+
+    /**
+     * 주문 취소 메인 서비스 로직
+     */
+    @Transactional
+    public void cancelOrder(UUID orderId, UUID userId, UserRole role) {
+        Order order = findById(orderId);
+
+        // 배송 진행전까지만 취소 가능
+        if (order.isBeforeShipping()) {
+            throw new CustomRuntimeException(OrderException.CANNOT_CANCEL_ON_SHIPPING);
+        }
+
+        validateUpdateOrDeleteOrderByAuthority(order.getReceiveCompanyId(), userId, role);
+
+        // 재고 변경(복구)
+        productFeignClient
+                .updateStock(order.getProductId(), new ProductUpdateStockRequestDto(order.getQuantity(), 0));
+
+        order.setStatusCancelled();
+    }
+
+    /**
+     * 주문 삭제 (소프트 딜리트 용)
+     */
+    @Transactional
+    public OrderDeleteResponseDto deleteOrder(UUID orderId, UUID userId, UserRole role) {
+        Order order = findById(orderId);
+
+        // 배송 완료 또는 주문 취소 상태일 때 삭제 가능
+        if (!order.isDeletableStatus()) {
+            throw new CustomRuntimeException(OrderException.CANNOT_DELETE_ON_THIS_STATUS);
+        }
+
+        validateUpdateOrDeleteOrderByAuthority(order.getReceiveCompanyId(), userId, role);
+
+        order.delete(userId);
+
+        return new OrderDeleteResponseDto(true);
     }
 
     /**
@@ -186,6 +246,23 @@ public class OrderService {
         if (role.equals(UserRole.COMPANY)) {
             CompanyFindInfoResponseDto userCompany = companyFeignClient.findCompanyInfoByUserId(userId);
             validateUuidMatch(userCompany.companyId(), requestedCompany.companyId());
+        }
+    }
+
+    /**
+     * 주문 단건 조회 권한 검증
+     */
+    private void validateFindOrderByAuthority(UUID receiveCompanyId, UUID createdBy, UUID userId, UserRole role) {
+        // 허브 담당자의 경우 본인의 허브 소속 업체들의 주문 내역 조회 가능
+        if (role.equals(UserRole.HUB)) {
+            HubFindInfoResponseDto userHub = hubFeignClient.findHubInfoByUserId(userId);
+            CompanyFindInfoResponseDto companyInfo = companyFeignClient.findCompanyInfoByCompanyId(receiveCompanyId);
+            validateUuidMatch(userHub.hubId(), companyInfo.hubId());
+        }
+
+        // 배송 담당자나 업체 담당자의 경우 자신의 주문 내역만 조회 가능
+        if (role.equals(UserRole.DELIVERY) || role.equals(UserRole.COMPANY)) {
+            validateUuidMatch(userId, createdBy);
         }
     }
 
@@ -229,6 +306,23 @@ public class OrderService {
         }
     }
 
+    /**
+     * 주문 수정/삭제용 권한 검증
+     */
+    private void validateUpdateOrDeleteOrderByAuthority(UUID receiveCompanyId, UUID userId, UserRole role) {
+        // 주문 수정/삭제는 마스터 허브만 가능
+        if (role.equals(UserRole.DELIVERY) || role.equals(UserRole.COMPANY)) {
+            throw new CustomRuntimeException(OrderException.ACCESS_DENIED);
+        }
+
+        // 허브 담당자의 경우 - 본인의 조회하려는 업체가 본인 허브의 소속 업체인지 확인
+        if (role.equals(UserRole.HUB)) {
+            HubFindInfoResponseDto userHub = hubFeignClient.findHubInfoByUserId(userId);
+            CompanyFindInfoResponseDto receiveCompany = companyFeignClient.findCompanyInfoByCompanyId(receiveCompanyId);
+            validateUuidMatch(userHub.hubId(), receiveCompany.hubId());
+        }
+    }
+
     private void validateUuidMatch(UUID expectedId, UUID actualId) {
         if (!expectedId.equals(actualId)) {
             throw new CustomRuntimeException(OrderException.ACCESS_DENIED);
@@ -248,5 +342,10 @@ public class OrderService {
         return data.stream()
                 .map(OrderDetailsQuerydslResponseDto::productId)
                 .collect(Collectors.toSet());
+    }
+
+    private Order findById(UUID orderId) {
+        return orderJpaRepository.findById(orderId)
+                .orElseThrow(() -> new CustomRuntimeException(OrderException.PRODUCT_NOT_FOUND));
     }
 }
