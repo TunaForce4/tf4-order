@@ -15,6 +15,7 @@ import com.tunaforce.order.repository.feign.company.CompanyFeignClient;
 import com.tunaforce.order.repository.feign.company.response.CompanyFindInfoListResponseDto;
 import com.tunaforce.order.repository.feign.company.response.CompanyFindInfoResponseDto;
 import com.tunaforce.order.repository.feign.delivery.DeliveryFeignClient;
+import com.tunaforce.order.repository.feign.delivery.dto.request.DeliveryCreateRequestDto;
 import com.tunaforce.order.repository.feign.delivery.dto.response.DeliveryFindInfoResponseDto;
 import com.tunaforce.order.repository.feign.hub.HubFeignClient;
 import com.tunaforce.order.repository.feign.hub.response.HubFindInfoResponseDto;
@@ -81,11 +82,16 @@ public class OrderService {
         // 결제(가정)
         order.setStatusPaid();
 
-        // 배달 생성
-        deliveryFeignClient.createOrderDelivery();
-        order.setStatusReadyForShipment();
-
         orderJpaRepository.save(order);
+
+        // 배달 생성
+        deliveryFeignClient.createOrderDelivery(new DeliveryCreateRequestDto(
+                order.getId(),
+                order.getSupplyCompanyId(),
+                order.getReceiveCompanyId()
+        ));
+
+        order.setStatusReadyForShipment();
     }
 
     /**
