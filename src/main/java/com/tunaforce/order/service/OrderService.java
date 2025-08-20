@@ -7,7 +7,6 @@ import com.tunaforce.order.dto.response.OrderFindPageResponseDto;
 import com.tunaforce.order.entity.Order;
 import com.tunaforce.order.entity.OrderStatus;
 import com.tunaforce.order.entity.UserRole;
-import com.tunaforce.order.repository.feign.auth.AuthFeignClient;
 import com.tunaforce.order.repository.feign.company.CompanyFeignClient;
 import com.tunaforce.order.repository.feign.company.response.CompanyFindInfoListResponseDto;
 import com.tunaforce.order.repository.feign.company.response.CompanyFindInfoResponseDto;
@@ -41,7 +40,6 @@ import java.util.stream.Collectors;
 public class OrderService {
 
     private final HubFeignClient hubFeignClient;
-    private final AuthFeignClient authFeignClient;
     private final CompanyFeignClient companyFeignClient;
     private final ProductFeignClient productFeignClient;
     private final DeliveryFeignClient deliveryFeignClient;
