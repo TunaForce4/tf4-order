@@ -24,8 +24,8 @@ public class OrderController {
     @PostMapping
     public ResponseEntity<Void> createOrder(
             @RequestBody OrderCreateRequestDto orderCreateRequestDto,
-            @RequestHeader("X-Auth-User-Id") UUID userId,
-            @RequestHeader("X-Auth-Roles") String userRole
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader("X-Roles") String userRole
     ) {
         UserRole role = UserRole.of(userRole);
 
@@ -35,12 +35,26 @@ public class OrderController {
                 .body(null);
     }
 
+    @GetMapping("/{orderId}")
+    public ResponseEntity<OrderFindDetailResponseDto> findOrder(
+            @PathVariable UUID orderId,
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader("X-Roles") String userRole
+    ) {
+        UserRole role = UserRole.of(userRole);
+
+        OrderFindDetailResponseDto data = orderService.findOrderDetails(orderId, userId, role);
+
+        return ResponseEntity.ok()
+                .body(data);
+    }
+
     @GetMapping("/hubs/{hubId}")
     public ResponseEntity<OrderFindPageResponseDto> findHubOrders(
             @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
             @PathVariable UUID hubId,
-            @RequestHeader("X-Auth-User-Id") UUID userId,
-            @RequestHeader("X-Auth-Roles") String userRole
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader("X-Roles") String userRole
     ) {
         UserRole role = UserRole.of(userRole);
         SortType.validate(pageable.getSort());
@@ -55,8 +69,8 @@ public class OrderController {
     public ResponseEntity<OrderFindPageResponseDto> findCompanyOrders(
             @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
             @PathVariable UUID companyId,
-            @RequestHeader("X-Auth-User-Id") UUID userId,
-            @RequestHeader("X-Auth-Roles") String userRole
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader("X-Roles") String userRole
     ) {
         UserRole role = UserRole.of(userRole);
         SortType.validate(pageable.getSort());

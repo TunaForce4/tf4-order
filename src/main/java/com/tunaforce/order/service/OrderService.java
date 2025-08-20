@@ -4,6 +4,7 @@ import com.tunaforce.order.common.exception.CustomRuntimeException;
 import com.tunaforce.order.common.exception.OrderException;
 import com.tunaforce.order.dto.request.OrderCreateRequestDto;
 import com.tunaforce.order.dto.response.OrderFindPageResponseDto;
+import com.tunaforce.order.dto.response.OrderFindDetailResponseDto;
 import com.tunaforce.order.entity.Order;
 import com.tunaforce.order.entity.OrderStatus;
 import com.tunaforce.order.entity.UserRole;
@@ -79,6 +80,32 @@ public class OrderService {
 
         // 주문 영속화
         orderJpaRepository.save(order);
+    }
+
+    public OrderFindDetailResponseDto findOrderDetails(UUID orderId, UUID userId, UserRole role) {
+        OrderDetailsQuerydslResponseDto orderDetails = orderQuerydslRepository.findOrder(orderId);
+
+        validateFindOrderByAuthority(orderDetails.receiveCompanyId(), orderDetails.createdBy(), userId, role);
+
+        ProductFindInfoResponseDto productInfo = productFeignClient.findById(orderDetails.productId());
+        CompanyFindInfoResponseDto companyInfo
+                = companyFeignClient.findCompanyInfoByCompanyId(orderDetails.receiveCompanyId());
+
+        return OrderFindDetailResponseDto.from(orderDetails, companyInfo.companyName(), productInfo.productName());
+    }
+
+    private void validateFindOrderByAuthority(UUID receiveCompanyId, UUID createdBy, UUID userId, UserRole role) {
+        // 허브 담당자의 경우 본인의 허브 소속 업체들의 주문 내역 조회 가능
+        if (role.equals(UserRole.HUB)) {
+            HubFindInfoResponseDto userHub = hubFeignClient.findHubInfoByUserId(userId);
+            CompanyFindInfoResponseDto companyInfo = companyFeignClient.findCompanyInfoByCompanyId(receiveCompanyId);
+            validateUuidMatch(userHub.hubId(), companyInfo.hubId());
+        }
+
+        // 배송 담당자나 업체 담당자의 경우 자신의 주문 내역만 조회 가능
+        if (role.equals(UserRole.DELIVERY) || role.equals(UserRole.COMPANY)) {
+            validateUuidMatch(userId, createdBy);
+        }
     }
 
     /**
