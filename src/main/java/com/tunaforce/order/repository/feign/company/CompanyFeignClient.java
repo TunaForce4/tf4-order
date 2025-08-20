@@ -10,7 +10,6 @@ import java.util.UUID;
 
 @FeignClient(
         name = "companies",
-        url = "localhost:3360",
         path = "/internal/companies/order-company",
         fallbackFactory = CompanyFeignFallbackFactory.class)
 public interface CompanyFeignClient {

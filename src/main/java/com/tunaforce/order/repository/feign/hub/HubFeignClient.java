@@ -9,7 +9,6 @@ import java.util.UUID;
 
 @FeignClient(
         name = "hubs",
-        url = "localhost:3340",
         path = "/internal/hubs/order-hub",
         fallbackFactory = HubFeignFallbackFactory.class)
 public interface HubFeignClient {

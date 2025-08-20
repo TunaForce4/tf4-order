@@ -14,7 +14,6 @@ import java.util.UUID;
 
 @FeignClient(
         name = "products",
-        url = "localhost:3390",
         path = "/internal/products/order-product",
         fallbackFactory = ProductFeignFallbackFactory.class
 )
