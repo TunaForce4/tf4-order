@@ -1,8 +1,14 @@
 package com.tunaforce.order.controller;
 
 import com.tunaforce.order.dto.request.OrderCreateRequestDto;
+import com.tunaforce.order.dto.response.OrderFindPageResponseDto;
+import com.tunaforce.order.entity.SortType;
+import com.tunaforce.order.entity.UserRole;
 import com.tunaforce.order.service.OrderService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,11 +24,46 @@ public class OrderController {
     @PostMapping
     public ResponseEntity<Void> createOrder(
             @RequestBody OrderCreateRequestDto orderCreateRequestDto,
-            @RequestHeader("X-USER-ID") UUID userId // FIXME 임시
+            @RequestHeader("X-Auth-User-Id") UUID userId,
+            @RequestHeader("X-Auth-Roles") String userRole
     ) {
-        orderService.createOrder(orderCreateRequestDto, userId);
+        UserRole role = UserRole.of(userRole);
+
+        orderService.createOrder(orderCreateRequestDto, userId, role);
 
         return ResponseEntity.created(null)
                 .body(null);
+    }
+
+    @GetMapping("/hubs/{hubId}")
+    public ResponseEntity<OrderFindPageResponseDto> findHubOrders(
+            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            @PathVariable UUID hubId,
+            @RequestHeader("X-Auth-User-Id") UUID userId,
+            @RequestHeader("X-Auth-Roles") String userRole
+    ) {
+        UserRole role = UserRole.of(userRole);
+        SortType.validate(pageable.getSort());
+
+        OrderFindPageResponseDto data = orderService.findHubOrderPage(pageable, hubId, userId, role);
+
+        return ResponseEntity.ok()
+                .body(data);
+    }
+
+    @GetMapping("/companies/{companyId}")
+    public ResponseEntity<OrderFindPageResponseDto> findCompanyOrders(
+            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            @PathVariable UUID companyId,
+            @RequestHeader("X-Auth-User-Id") UUID userId,
+            @RequestHeader("X-Auth-Roles") String userRole
+    ) {
+        UserRole role = UserRole.of(userRole);
+        SortType.validate(pageable.getSort());
+
+        OrderFindPageResponseDto data = orderService.findCompanyOrderPage(pageable, companyId, userId, role);
+
+        return ResponseEntity.ok()
+                .body(data);
     }
 }

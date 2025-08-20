@@ -1,24 +1,32 @@
 package com.tunaforce.order.repository.feign.product;
 
+import com.tunaforce.order.repository.feign.product.dto.request.ProductFindInfoListRequestDto;
 import com.tunaforce.order.repository.feign.product.dto.request.ProductReduceStockRequestDto;
+import com.tunaforce.order.repository.feign.product.dto.response.ProductFindInfoListResponseDto;
+import com.tunaforce.order.repository.feign.product.dto.response.ProductFindInfoResponseDto;
 import com.tunaforce.order.repository.feign.product.dto.response.ProductReduceStockResponseDto;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
 @FeignClient(
-        name = "product-service",
+        name = "products",
         url = "localhost:3390",
-        path = "/internal/products",
+        path = "/internal/products/order-product",
         fallbackFactory = ProductFeignFallbackFactory.class
 )
 public interface ProductFeignClient {
 
-    @PatchMapping("/{productId}/order-product/decrease-stock")
+    @GetMapping("/find-by-id/{productId}")
+    ProductFindInfoResponseDto findById(@PathVariable("productId") UUID productId);
+
+    @PostMapping("/find-by-ids")
+    ProductFindInfoListResponseDto findByIds(
+            @RequestBody ProductFindInfoListRequestDto productFindInfoListRequestDto
+    );
+
+    @PatchMapping("/{productId}/decrease-stock")
     ProductReduceStockResponseDto reduceStock(
             @PathVariable UUID productId,
             @RequestBody ProductReduceStockRequestDto productReduceStockRequestDto,

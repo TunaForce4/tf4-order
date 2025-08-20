@@ -25,6 +25,9 @@ public class Order extends Timestamped {
     @Column(name = "receive_company_id")
     private UUID receiveCompanyId;
 
+    @Column(name = "product_id")
+    private UUID productId;
+
     @Column(name = "price", nullable = false)
     private Integer price;
 
@@ -39,9 +42,10 @@ public class Order extends Timestamped {
     private OrderStatus status;
 
     @Builder
-    public Order(UUID supplyCompanyId, UUID receiveCompanyId, Integer price, Integer quantity, String requestMemo, OrderStatus status) {
+    public Order(UUID supplyCompanyId, UUID receiveCompanyId, UUID productId, Integer price, Integer quantity, String requestMemo, OrderStatus status) {
         this.supplyCompanyId = supplyCompanyId;
         this.receiveCompanyId = receiveCompanyId;
+        this.productId = productId;
         this.price = price;
         this.quantity = quantity;
         this.requestMemo = requestMemo;
