@@ -9,13 +9,13 @@ import java.util.UUID;
 
 @FeignClient(
         name = "hubs",
-        path = "/internal/hubs/order-hub",
+        path = "/hubs",
         fallbackFactory = HubFeignFallbackFactory.class)
 public interface HubFeignClient {
 
-    @GetMapping("/find-by-user-id/{userId}")
+    @GetMapping("/admins/{userId}")
     HubFindInfoResponseDto findHubInfoByUserId(@PathVariable("userId") UUID userId);
 
-    @GetMapping("/find-by-hub-id/{hubId}")
+    @GetMapping("/{hubId}")
     HubFindInfoResponseDto findHubInfoByHubId(@PathVariable("hubId") UUID hubId);
 }
