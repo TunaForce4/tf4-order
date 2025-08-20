@@ -23,7 +23,9 @@ public record OrderDetailsQuerydslResponseDto(
 
         LocalDateTime createdAt,
 
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+
+        UUID createdBy
 ) {
 
     @QueryProjection

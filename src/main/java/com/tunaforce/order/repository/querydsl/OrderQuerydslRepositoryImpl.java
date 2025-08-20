@@ -30,6 +30,26 @@ public class OrderQuerydslRepositoryImpl implements OrderQuerydslRepository {
     private final JPAQueryFactory queryFactory;
 
     @Override
+    public OrderDetailsQuerydslResponseDto findOrder(UUID orderId) {
+
+        return queryFactory.select(new QOrderDetailsQuerydslResponseDto(
+                        order.id,
+                        order.receiveCompanyId,
+                        order.productId,
+                        order.price,
+                        order.quantity,
+                        order.requestMemo,
+                        order.status,
+                        order.createdAt,
+                        order.updatedAt,
+                        order.createdBy
+                ))
+                .from(order)
+                .where(order.id.eq(orderId))
+                .fetchOne();
+    }
+
+    @Override
     public Page<OrderDetailsQuerydslResponseDto> findHubOrderPage(Pageable pageable, List<UUID> companyIds) {
         Predicate[] whereClause = {
                 order.receiveCompanyId.in(companyIds),
@@ -62,7 +82,8 @@ public class OrderQuerydslRepositoryImpl implements OrderQuerydslRepository {
                         order.requestMemo,
                         order.status,
                         order.createdAt,
-                        order.updatedAt
+                        order.updatedAt,
+                        order.createdBy
                 ))
                 .from(order)
                 .where(whereClause)
