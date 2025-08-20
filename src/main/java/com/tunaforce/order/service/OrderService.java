@@ -278,8 +278,8 @@ public class OrderService {
 
         // 허브 담당자의 경우 - 조회하려는 허브가 본인의 허브인지 확인
         if (role.equals(UserRole.HUB)) {
-            HubFindInfoResponseDto hubInfo = hubFeignClient.findHubInfoByUserId(userId);
-            validateUuidMatch(hubInfo.hubId(), hubId);
+            HubFindInfoResponseDto userHub = hubFeignClient.findHubInfoByUserId(userId);
+            validateUuidMatch(userHub.hubId(), hubId);
         }
     }
 
@@ -294,15 +294,15 @@ public class OrderService {
 
         // 허브 담당자의 경우 - 본인의 조회하려는 업체가 본인 허브의 소속 업체인지 확인
         if (role.equals(UserRole.HUB)) {
-            HubFindInfoResponseDto hubInfo = hubFeignClient.findHubInfoByUserId(userId);
+            HubFindInfoResponseDto userHub = hubFeignClient.findHubInfoByUserId(userId);
             CompanyFindInfoResponseDto companyInfo = companyFeignClient.findCompanyInfoByCompanyId(companyId);
-            validateUuidMatch(hubInfo.hubId(), companyInfo.hubId());
+            validateUuidMatch(userHub.hubId(), companyInfo.hubId());
         }
 
         // 업체 담당자의 경우 - 조회하려는 허브가 본인의 허브인지 확인
         if (role.equals(UserRole.COMPANY)) {
-            CompanyFindInfoResponseDto companyInfo = companyFeignClient.findCompanyInfoByUserId(userId);
-            validateUuidMatch(companyId, companyInfo.companyId());
+            CompanyFindInfoResponseDto userCompany = companyFeignClient.findCompanyInfoByUserId(userId);
+            validateUuidMatch(companyId, userCompany.companyId());
         }
     }
 
