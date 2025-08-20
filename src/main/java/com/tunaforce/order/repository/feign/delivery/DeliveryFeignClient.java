@@ -11,17 +11,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import java.util.UUID;
 
 @FeignClient(
-        name = "delivery-service",
-        path = "/internal/deliveries/order-delivery",
+        name = "deliveries",
         fallbackFactory = DeliveryFeignFallbackFactory.class
 )
 public interface DeliveryFeignClient {
 
-    @GetMapping("/find-by-user-id/{userId}")
+    @GetMapping("/delivery-agents/{userId}")
     DeliveryFindInfoResponseDto findDeliveryInfoByUserId(@PathVariable("userId") UUID userId);
 
-    @PostMapping("/create-delivery")
-    void createOrderDelivery(
-            @RequestBody DeliveryCreateRequestDto deliveryCreateRequestDto
-    );
+    @PostMapping("/deliveries")
+    void createOrderDelivery(@RequestBody DeliveryCreateRequestDto deliveryCreateRequestDto);
 }
