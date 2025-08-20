@@ -32,12 +32,13 @@ public interface ProductFeignClient {
     ProductReduceStockResponseDto reduceStock(
             @PathVariable UUID productId,
             @RequestBody ProductReduceStockRequestDto productReduceStockRequestDto,
-            @RequestHeader("X-USER-ID") UUID userId
+            @RequestHeader("X-User-Id") UUID userId
     );
 
     @PatchMapping("/{productId}/update-stock")
     ProductUpdateStockResponseDto updateStock(
             @PathVariable UUID productId,
-            @RequestBody ProductUpdateStockRequestDto productUpdateStockRequestDto
+            @RequestBody ProductUpdateStockRequestDto productUpdateStockRequestDto,
+            @RequestHeader("X-User-Id") UUID userId
     );
 }

@@ -173,8 +173,11 @@ public class OrderService {
 
         // 재고 변경
         if (!orderQuantity.equals(updateQuantity)) {
-            productFeignClient
-                    .updateStock(order.getProductId(), new ProductUpdateStockRequestDto(orderQuantity, updateQuantity));
+            productFeignClient.updateStock(
+                    order.getProductId(),
+                    new ProductUpdateStockRequestDto(orderQuantity, updateQuantity),
+                    userId
+            );
         }
 
         order.update(request);
@@ -195,8 +198,11 @@ public class OrderService {
         validateUpdateOrDeleteOrderByAuthority(order.getReceiveCompanyId(), userId, role);
 
         // 재고 변경(복구)
-        productFeignClient
-                .updateStock(order.getProductId(), new ProductUpdateStockRequestDto(order.getQuantity(), 0));
+        productFeignClient.updateStock(
+                order.getProductId(),
+                new ProductUpdateStockRequestDto(order.getQuantity(), 0),
+                userId
+        );
 
         order.setStatusCancelled();
     }

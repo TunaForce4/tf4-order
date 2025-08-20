@@ -52,7 +52,7 @@ public class ProductFeignFallbackFactory implements FallbackFactory<ProductFeign
             }
 
             @Override
-            public ProductUpdateStockResponseDto updateStock(UUID productId, ProductUpdateStockRequestDto productUpdateStockRequestDto) {
+            public ProductUpdateStockResponseDto updateStock(UUID productId, ProductUpdateStockRequestDto productUpdateStockRequestDto, UUID userId) {
                 return null;
             }
         };
