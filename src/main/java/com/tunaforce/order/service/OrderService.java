@@ -97,7 +97,7 @@ public class OrderService {
 
         // 배달 생성
         deliveryFeignClient.createOrderDelivery();
-        order.setStatusShipping();
+        order.setStatusReadyForShipment();
 
         // 주문 영속화
         orderJpaRepository.save(order);

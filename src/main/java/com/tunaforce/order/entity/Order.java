@@ -66,6 +66,10 @@ public class Order extends Timestamped {
         this.status = OrderStatus.PAID;
     }
 
+    public void setStatusReadyForShipment() {
+        this.status = OrderStatus.READY_FOR_SHIPMENT;
+    }
+
     public void setStatusShipping() {
         this.status = OrderStatus.SHIPPING;
     }

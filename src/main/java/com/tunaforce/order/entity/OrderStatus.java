@@ -10,6 +10,7 @@ public enum OrderStatus {
     PENDING("PENDING"), // 주문 요청
     PREPARED("PREPARED"), // 상품 준비 완료
     PAID("PAID"), // 결제 완료
+    READY_FOR_SHIPMENT("READY_FOR_SHIPMENT"),
     SHIPPING("SHIPPING"), // 배송 중
     DELIVERED("DELIVERED"), // 배송 완료
 
