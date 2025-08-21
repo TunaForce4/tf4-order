@@ -14,7 +14,7 @@ import java.util.UUID;
 
 @FeignClient(
         name = "product",
-        path = "/internal/products",
+        path = "/products/internal",
         fallbackFactory = ProductFeignFallbackFactory.class
 )
 public interface ProductFeignClient {
@@ -24,12 +24,12 @@ public interface ProductFeignClient {
             @PathVariable("productId") UUID productId
     );
 
-    @PostMapping("/find-by-product-ids")
+    @PostMapping
     ProductFindInfoListResponseDto findByProductIds(
             @RequestBody ProductFindInfoListRequestDto productFindInfoListRequestDto
     );
 
-    @PatchMapping("/{productId}/decrease-stock")
+    @PatchMapping("/{productId}/reduce-stock")
     ProductReduceStockResponseDto reduceStock(
             @PathVariable UUID productId,
             @RequestBody ProductReduceStockRequestDto productReduceStockRequestDto,
