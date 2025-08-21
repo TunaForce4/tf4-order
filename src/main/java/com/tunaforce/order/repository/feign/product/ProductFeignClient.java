@@ -13,14 +13,16 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @FeignClient(
-        name = "products",
+        name = "product",
         path = "/internal/products",
         fallbackFactory = ProductFeignFallbackFactory.class
 )
 public interface ProductFeignClient {
 
     @GetMapping("/find-by-product-id/{productId}")
-    ProductFindInfoResponseDto findByProductId(@PathVariable("productId") UUID productId);
+    ProductFindInfoResponseDto findByProductId(
+            @PathVariable("productId") UUID productId
+    );
 
     @PostMapping("/find-by-product-ids")
     ProductFindInfoListResponseDto findByProductIds(

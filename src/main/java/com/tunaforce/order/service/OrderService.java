@@ -17,7 +17,7 @@ import com.tunaforce.order.repository.feign.delivery.DeliveryFeignClient;
 import com.tunaforce.order.repository.feign.delivery.dto.request.DeliveryCreateRequestDto;
 import com.tunaforce.order.repository.feign.delivery.dto.response.DeliveryFindInfoResponseDto;
 import com.tunaforce.order.repository.feign.hub.HubFeignClient;
-import com.tunaforce.order.repository.feign.hub.response.HubFindInfoResponseDto;
+import com.tunaforce.order.repository.feign.hub.dto.response.HubFindInfoResponseDto;
 import com.tunaforce.order.repository.feign.product.ProductFeignClient;
 import com.tunaforce.order.repository.feign.product.dto.request.ProductFindInfoListRequestDto;
 import com.tunaforce.order.repository.feign.product.dto.request.ProductReduceStockRequestDto;
@@ -117,7 +117,7 @@ public class OrderService {
 
         // 조회하려는 허브 정보 조회 및 소속 업체 조회
         HubFindInfoResponseDto hubInfo = hubFeignClient.findHubInfoByHubId(hubId);
-        CompanyFindInfoListResponseDto companyInfos = companyFeignClient.findCompanyInfoListByHubId(hubId);
+        CompanyFindInfoListResponseDto companyInfos = companyFeignClient.findCompanyInfoListByHubId(hubId.toString());
 
         List<UUID> companyIds = companyInfos.data().stream()
                 .map(CompanyFindInfoResponseDto::companyId)
@@ -252,7 +252,7 @@ public class OrderService {
 
         // 배송 담당자의 경우 - 주문하려는 업체가 본인 담당 허브의 소속 업체인지 검증
         if (role.equals(UserRole.DELIVERY)) {
-            DeliveryFindInfoResponseDto userDelivery = deliveryFeignClient.findDeliveryInfoByUserId(userId);
+            DeliveryFindInfoResponseDto userDelivery = deliveryFeignClient.findDeliveryInfoByUserId(userId.toString());
             validateOwnProduct(userDelivery.hubId(), requestedCompany.hubId());
         }
 
