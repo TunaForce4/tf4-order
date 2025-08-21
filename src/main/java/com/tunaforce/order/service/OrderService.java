@@ -185,7 +185,7 @@ public class OrderService {
                     userId
             );
 
-            order.updateOrderPrice(updateStockResponse.price());
+            order.updateOrderPrice(updateStockResponse.orderPrice());
         }
 
         order.update(request);
