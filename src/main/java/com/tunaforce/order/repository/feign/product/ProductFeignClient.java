@@ -29,14 +29,14 @@ public interface ProductFeignClient {
             @RequestBody ProductFindInfoListRequestDto productFindInfoListRequestDto
     );
 
-    @PatchMapping("/{productId}/reduce-stock")
+    @PostMapping("/{productId}/reduce-stock")
     ProductReduceStockResponseDto reduceStock(
             @PathVariable UUID productId,
             @RequestBody ProductReduceStockRequestDto productReduceStockRequestDto,
             @RequestHeader("X-User-Id") UUID userId
     );
 
-    @PatchMapping("/{productId}/update-order-quantity")
+    @PostMapping("/{productId}/update-order-quantity")
     ProductUpdateStockResponseDto updateStock(
             @PathVariable UUID productId,
             @RequestBody ProductUpdateStockRequestDto productUpdateStockRequestDto,

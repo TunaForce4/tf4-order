@@ -6,7 +6,7 @@ public record CompanyFindInfoResponseDto(
         UUID companyId,
 
         UUID hubId,
-        
+
         String companyName
 ) {
 }

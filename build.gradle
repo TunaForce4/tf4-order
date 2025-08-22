@@ -54,7 +54,6 @@ dependencies {
 
     // openFeign
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
-    implementation 'io.github.openfeign:feign-okhttp:13.6'
 
     // zipkin
     implementation 'io.micrometer:micrometer-tracing-bridge-brave'

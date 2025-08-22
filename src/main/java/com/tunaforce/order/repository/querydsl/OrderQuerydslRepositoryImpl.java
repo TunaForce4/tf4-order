@@ -10,7 +10,6 @@ import com.tunaforce.order.entity.QOrder;
 import com.tunaforce.order.repository.querydsl.dto.response.OrderDetailsQuerydslResponseDto;
 import com.tunaforce.order.repository.querydsl.dto.response.QOrderDetailsQuerydslResponseDto;
 import lombok.RequiredArgsConstructor;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;

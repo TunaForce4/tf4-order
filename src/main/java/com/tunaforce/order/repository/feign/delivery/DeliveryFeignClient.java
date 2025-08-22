@@ -17,5 +17,8 @@ public interface DeliveryFeignClient {
     DeliveryFindInfoResponseDto findDeliveryInfoByUserId(@RequestParam String q);
 
     @PostMapping("/deliveries")
-    void createOrderDelivery(@RequestBody DeliveryCreateRequestDto deliveryCreateRequestDto);
+    void createOrderDelivery(
+            @RequestBody DeliveryCreateRequestDto deliveryCreateRequestDto,
+            @RequestHeader("X-User-Id") UUID userId
+    );
 }

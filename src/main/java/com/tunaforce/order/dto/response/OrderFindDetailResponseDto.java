@@ -1,6 +1,7 @@
 package com.tunaforce.order.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.tunaforce.order.entity.OrderStatus;
 import com.tunaforce.order.repository.querydsl.dto.response.OrderDetailsQuerydslResponseDto;
 import lombok.Builder;
 
@@ -23,6 +24,8 @@ public record OrderFindDetailResponseDto(
 
         String requestMemo,
 
+        OrderStatus orderStatus,
+
         @JsonFormat(pattern = "yyyy년 MM월 dd일")
         LocalDateTime createdAt,
 
@@ -33,10 +36,20 @@ public record OrderFindDetailResponseDto(
     public static OrderFindDetailResponseDto from(
             OrderDetailsQuerydslResponseDto data,
             String receiveCompanyName,
-            String productName
+            String productName,
+            String hubName
     ) {
         return OrderFindDetailResponseDto.builder()
-
+                .orderId(data.orderId())
+                .hubName(hubName)
+                .receiveCompanyName(receiveCompanyName)
+                .productName(productName)
+                .orderQuantity(data.orderQuantity())
+                .orderPrice(data.orderPrice())
+                .requestMemo(data.requestMemo())
+                .orderStatus(data.status())
+                .createdAt(data.createdAt())
+                .updatedAt(data.updatedAt())
                 .build();
     }
 }

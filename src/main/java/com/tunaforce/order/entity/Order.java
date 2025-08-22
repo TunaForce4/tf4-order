@@ -59,8 +59,20 @@ public class Order extends Timestamped {
     }
 
     public void update(OrderUpdateRequestDto requestDto) {
-        this.quantity = requestDto.orderQuantity();
-        this.requestMemo = requestDto.requestMemo();
+        updateQuantity(requestDto.orderQuantity());
+        updateMemo(requestDto.requestMemo());
+    }
+
+    private void updateQuantity(Integer quantity) {
+        if (quantity != null) {
+            this.quantity = quantity;
+        }
+    }
+
+    private void updateMemo(String memo) {
+        if (memo != null) {
+            this.requestMemo = memo;
+        }
     }
 
     public void updateOrderPrice(Integer price) {
