@@ -16,8 +16,8 @@ public enum SortType {
     CREATED_DESC("createdAt", Sort.Direction.DESC),
     UPDATED_ASC("updatedAt", Sort.Direction.ASC),
     UPDATED_DESC("updatedAt", Sort.Direction.DESC),
-    PRICE_ASC("price", Sort.Direction.ASC),
-    PRICE_DESC("price", Sort.Direction.DESC),
+    PRICE_ASC("orderPrice", Sort.Direction.ASC),
+    PRICE_DESC("orderPrice", Sort.Direction.DESC),
     ;
 
     private final String value;

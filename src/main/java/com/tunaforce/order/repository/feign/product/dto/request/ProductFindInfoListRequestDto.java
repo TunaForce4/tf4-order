@@ -4,6 +4,14 @@ import java.util.List;
 import java.util.UUID;
 
 public record ProductFindInfoListRequestDto(
-        List<UUID> productIds
+        List<ProductFindInfoRequestDto> productIds
 ) {
+
+    public static ProductFindInfoListRequestDto from(List<UUID> productIds) {
+        return new ProductFindInfoListRequestDto(
+                productIds.stream()
+                        .map(ProductFindInfoRequestDto::new)
+                        .toList()
+        );
+    }
 }
