@@ -133,3 +133,19 @@
         return orderSpecifiers.toArray(new OrderSpecifier[0]);
       }
       ```
+      
+### 11. 트러블 슈팅 
+
+- `OpenFeign`의 HTTP `PATCH` 메소드 미지원
+  - 원인
+    ![openfeign_trouble_1](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdna%2FsenN2%2FbtsP228uae0%2FAAAAAAAAAAAAAAAAAAAAAFPM1kh3cVJlaIyepRMGq-26xrPuLBlypU56BVkH8Kex%2Fimg.png%3Fcredential%3DyqXZFxpELC7KVnFOS48ylbz2pIh7yKj8%26expires%3D1756652399%26allow_ip%3D%26allow_referer%3D%26signature%3D1Adhf2iRqBIxWFno4%252BOSC6ThSec%253D)
+    ![openfeign_trouble_2](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdna%2FcsXI7X%2FbtsP11WPACl%2FAAAAAAAAAAAAAAAAAAAAAFnLL7tOaohP5ePtMOrW6aTPrfonpf0_FuxwVNiufRCa%2Fimg.png%3Fcredential%3DyqXZFxpELC7KVnFOS48ylbz2pIh7yKj8%26expires%3D1756652399%26allow_ip%3D%26allow_referer%3D%26signature%3DkUVqHuGmZoJ2BENQnpyiIkVzt9Y%253D)
+    - `OpenFeign`은 HTTP 요청을 추상화하여 메소드 호출로 REST API 호출 가능하도록 지원해주는데 HTTP 기본 구현체가 추가 의존성 없이 작동하도록 설계됨
+    - `HttpURLConnection`은 별도 라이브러리 의존 없이 사용 가능하므로 `OpenFeign`에서 사용
+    - `PATCH`는 비교적 최신 기능이라 지원이 안되는 것  
+  - 해결 방안
+    - 외부 HTTP 클라이언트 라이브러리를 사용하여 해결(커스텀)
+      - ApachHttpClient, OkHttpClient
+    - 하지만 각 서비스 간 내부 통신이므로 Restful 규약을 준수할 필요는 없다고 생각함
+  - 최종 결정
+    - `PATCH` -> `POST` 변경
