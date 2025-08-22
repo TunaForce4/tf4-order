@@ -201,9 +201,9 @@
         List<OrderSpecifier<?>> orderSpecifiers = new ArrayList<>();
     
         for (Sort.Order sortOrder : sort) {
-            Order order = sortOrder.isAscending() ? Order.ASC : Order.DESC; 
+            Order order = sortOrder.isAscending() ? Order.ASC : Order.DESC; // sort 쿼리 내 정렬 방향을 Order 객체로 파싱 
             PathBuilder<Product> pathBuilder
-                    = new PathBuilder<>(product.getType(), product.getMetadata());
+                    = new PathBuilder<>(product.getType(), product.getMetadata()); // sort 쿼리 내 정렬 값을 QClass 내 필드값에 해당하는 값으로 매핑  
     
             orderSpecifiers.add(new OrderSpecifier<>(order, pathBuilder.getString(sortOrder.getProperty())));
         }
@@ -238,7 +238,6 @@
 </details>
 
 
----
 ## 12. 회고
 ### 최우탁
 - 권한별 기능 설계 및 구현에 시간을 너무 사용하여 `OpenFeign` 통신 장애 대응 로직을 충분히 구현하지 못해 아쉽다.
