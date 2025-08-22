@@ -3,6 +3,7 @@
 ## 5. 라이브러리 사용 이유
 
 > Querydsl
+
 - JPQL의 컴파일 시점 오류 확인 불가
 - 쿼리 가독성과 타입 안정성을 보장하여 유지보수 용이
 
@@ -27,6 +28,7 @@
 ## 8. 주요 기능
 
 ### 8) Order
+
 | 기능                   | 메서드    | 엔드포인트                         | Query Params     | status |
 |----------------------|--------|-------------------------------|------------------|--------|
 | 주문 생성                | POST   | /orders                       |                  | 201    |
@@ -37,8 +39,8 @@
 | 주문 취소                | PATCH  | /orders/{orderId}/cancel      |                  | 204    |
 | 주문 삭제                | DELETE | /orders/{orderId}             |                  | 200    |
 
-
 ### 9) Product
+
 | 기능                      | 메서드    | 엔드포인트                           | Query Params                  | status |
 |-------------------------|--------|---------------------------------|-------------------------------|--------|
 | 상품 생성                   | POST   | /products                       |                               | 201    |
@@ -48,7 +50,6 @@
 | 업체 등록 상품 목록 조회 (페이지네이션) | GET    | /products/companies/{companyId} | page, size, sort, productName | 200    |
 | 상품 수정                   | PATCH  | /products                       |                               | 204    |
 | 상품 삭제                   | DELETE | /products                       |                               | 200    |
-
 
 ## 9. 상세 업무
 
@@ -104,6 +105,7 @@
     </details>
 
 ### Product
+
 - 유저 권한별 각 기능 유효성 검증
     <details>
         <summary>
@@ -154,15 +156,15 @@
 
     </details>
 
-
-
+### 공통
 
 - DTO의 `record` 타입 사용
-  - 클라이언트의 요청에 대한 불변성과 안정성을 명시
+    - 클라이언트의 요청에 대한 불변성과 안정성을 명시
 
 
 - `Pageable`의 `sort` 쿼리 - 정렬 조건 타입 안정화
     - 정해진 정렬 조건만 허용 - 예기치 못한 쿼리 또는 에러 발생 방지
+    - 동일한 `property` 정렬 시 예외 발생
     - `SortType` ENUM
       ```
       @Getter
@@ -173,23 +175,31 @@
           CREATED_DESC("createdAt", Sort.Direction.DESC),
           UPDATED_ASC("updatedAt", Sort.Direction.ASC),
           UPDATED_DESC("updatedAt", Sort.Direction.DESC),
-          PRICE_ASC("orderPrice", Sort.Direction.ASC),
-          PRICE_DESC("orderPrice", Sort.Direction.DESC),
+          PRICE_ASC("price", Sort.Direction.ASC),
+          PRICE_DESC("price", Sort.Direction.DESC),
           ;
       
           private final String value;
           private final Sort.Direction direction;
       
           public static void validate(Sort sort) {
+              Set<String> check = new HashSet<>();
+
               for (Sort.Order order : sort) {
-                  boolean valid = Arrays.stream(SortType.values())
-                          .anyMatch(sortType -> sortType.value.equalsIgnoreCase(order.getProperty()) &&
-                                  sortType.getDirection().equals(order.getDirection()));
-      
-                  if (!valid) {
-                      throw new CustomRuntimeException(OrderException.UNSUPPORTED_SORT_TYPE);
+                  if (!match(order)) {
+                      throw new CustomRuntimeException(ProductException.UNSUPPORTED_SORT_TYPE);
+                  }
+
+                  if (!check.add(order.getProperty().toLowerCase())) {
+                      throw new CustomRuntimeException(ProductException.DUPLICATED_SORT_TYPE);
                   }
               }
+          }
+      
+          private static boolean match(Sort.Order order) {
+              return Arrays.stream(SortType.values())
+                      .anyMatch(sortType -> sortType.value.equalsIgnoreCase(order.getProperty()) &&
+                         sortType.getDirection().equals(order.getDirection()));
           }
       }
       ```
@@ -211,8 +221,8 @@
         return orderSpecifiers.toArray(new OrderSpecifier[0]);
       }
       ```
-      
-## 11. 트러블 슈팅 
+
+## 11. 트러블 슈팅
 
 <details>
 <summary> OpenFeign Invalid HTTP method: PATCH </summary>
@@ -222,24 +232,29 @@
 1. 문제 상황 <br />
    ![openfeign_trouble_1](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdna%2FsenN2%2FbtsP228uae0%2FAAAAAAAAAAAAAAAAAAAAAFPM1kh3cVJlaIyepRMGq-26xrPuLBlypU56BVkH8Kex%2Fimg.png%3Fcredential%3DyqXZFxpELC7KVnFOS48ylbz2pIh7yKj8%26expires%3D1756652399%26allow_ip%3D%26allow_referer%3D%26signature%3D1Adhf2iRqBIxWFno4%252BOSC6ThSec%253D)
    ![openfeign_trouble_2](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdna%2FcsXI7X%2FbtsP11WPACl%2FAAAAAAAAAAAAAAAAAAAAAFnLL7tOaohP5ePtMOrW6aTPrfonpf0_FuxwVNiufRCa%2Fimg.png%3Fcredential%3DyqXZFxpELC7KVnFOS48ylbz2pIh7yKj8%26expires%3D1756652399%26allow_ip%3D%26allow_referer%3D%26signature%3DkUVqHuGmZoJ2BENQnpyiIkVzt9Y%253D)
+
 - `Order`서비스에서 `Product`서비스로 주문 상품 수량 수정이나 주문 취소시 차감했던 상품의 재고를 다시 변경하기 위해 `PATCH` 메소드 사용
 - `OpenFeign`은 HTTP 요청을 추상화하여 메소드 호출로 REST API 호출 가능하도록 지원해주는데 HTTP 기본 구현체가 추가 의존성 없이 작동하도록 설계됨
 - `HttpURLConnection`은 별도 라이브러리 의존 없이 사용 가능하므로 `OpenFeign`에서 사용
 - `PATCH`는 비교적 최신 기능이라 `HttpURLConnection`에서 지원이 안되는 것
 
 2. 해결방안 <br />
+
 - 외부 HTTP 클라이언트 라이브러리를 사용하여 해결(커스텀)
     - ApachHttpClient, OkHttpClient
 - 하지만 각 서비스 간 내부 통신이므로 Restful 규약을 준수할 필요는 없다고 생각함
 
 3. 최종 결정
+
 - `PATCH` -> `POST` 변경
+
 </div>
 </details>
 
-
 ## 12. 회고
+
 ### 최우탁
+
 - 권한별 기능 설계 및 구현에 시간을 너무 사용하여 `OpenFeign` 통신 장애 대응 로직을 충분히 구현하지 못해 아쉽다.
 - 각 기능의 최적화나 고도화를 진행하지 못한 점도 개선할 필요가 있다.
 - 다음 프로젝트에서는 설계 단계에서 서비스의 전체적인 도메인에 대한 이해를 충분한 회의나 지식 공유등을 통해 정리하고 가는 것이 좋을 것 같다.
