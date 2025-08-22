@@ -15,6 +15,7 @@ public enum OrderException {
     CANNOT_CANCEL_ON_SHIPPING(HttpStatus.CONFLICT, "배송이 이미 시작된 상태에서는 취소할 수 없습니다."),
     CANNOT_DELETE_ON_THIS_STATUS(HttpStatus.CONFLICT, "배송이 완료되거나 취소된 상태에서만 삭제할 수 있습니다."),
     UNSUPPORTED_SORT_TYPE(HttpStatus.BAD_REQUEST, "지원하지 않는 정렬 타입입니다."),
+    DUPLICATED_SORT_TYPE(HttpStatus.BAD_REQUEST, "중복된 정렬 타입입니다."),
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
 
     // Product
