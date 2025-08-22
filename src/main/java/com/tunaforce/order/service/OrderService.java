@@ -3,29 +3,35 @@ package com.tunaforce.order.service;
 import com.tunaforce.order.common.exception.CustomRuntimeException;
 import com.tunaforce.order.common.exception.OrderException;
 import com.tunaforce.order.dto.request.OrderCreateRequestDto;
+import com.tunaforce.order.dto.request.OrderUpdateRequestDto;
+import com.tunaforce.order.dto.response.OrderDeleteResponseDto;
+import com.tunaforce.order.dto.response.OrderFindDetailResponseDto;
 import com.tunaforce.order.dto.response.OrderFindPageResponseDto;
 import com.tunaforce.order.entity.Order;
 import com.tunaforce.order.entity.OrderStatus;
 import com.tunaforce.order.entity.UserRole;
-import com.tunaforce.order.repository.feign.auth.AuthFeignClient;
 import com.tunaforce.order.repository.feign.company.CompanyFeignClient;
 import com.tunaforce.order.repository.feign.company.response.CompanyFindInfoListResponseDto;
 import com.tunaforce.order.repository.feign.company.response.CompanyFindInfoResponseDto;
 import com.tunaforce.order.repository.feign.delivery.DeliveryFeignClient;
+import com.tunaforce.order.repository.feign.delivery.dto.request.DeliveryCreateRequestDto;
 import com.tunaforce.order.repository.feign.delivery.dto.response.DeliveryFindInfoResponseDto;
 import com.tunaforce.order.repository.feign.hub.HubFeignClient;
-import com.tunaforce.order.repository.feign.hub.response.HubFindInfoResponseDto;
+import com.tunaforce.order.repository.feign.hub.dto.response.HubFindInfoResponseDto;
 import com.tunaforce.order.repository.feign.product.ProductFeignClient;
 import com.tunaforce.order.repository.feign.product.dto.request.ProductFindInfoListRequestDto;
 import com.tunaforce.order.repository.feign.product.dto.request.ProductReduceStockRequestDto;
+import com.tunaforce.order.repository.feign.product.dto.request.ProductUpdateStockRequestDto;
 import com.tunaforce.order.repository.feign.product.dto.response.ProductFindInfoListResponseDto;
 import com.tunaforce.order.repository.feign.product.dto.response.ProductFindInfoResponseDto;
 import com.tunaforce.order.repository.feign.product.dto.response.ProductReduceStockResponseDto;
+import com.tunaforce.order.repository.feign.product.dto.response.ProductUpdateStockResponseDto;
 import com.tunaforce.order.repository.jpa.OrderJpaRepository;
 import com.tunaforce.order.repository.querydsl.OrderQuerydslRepository;
 import com.tunaforce.order.repository.querydsl.dto.response.OrderDetailsQuerydslResponseDto;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -36,12 +42,12 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrderService {
 
     private final HubFeignClient hubFeignClient;
-    private final AuthFeignClient authFeignClient;
     private final CompanyFeignClient companyFeignClient;
     private final ProductFeignClient productFeignClient;
     private final DeliveryFeignClient deliveryFeignClient;
@@ -49,29 +55,13 @@ public class OrderService {
     private final OrderJpaRepository orderJpaRepository;
     private final OrderQuerydslRepository orderQuerydslRepository;
 
+    /**
+     * 주문 생성
+     */
     @Transactional
     public void createOrder(OrderCreateRequestDto request, UUID userId, UserRole role) {
-        // 유저 역할에 따라 주문 생성에 요청된 업체와 로그인한 유저의 허브 또는 업체와의 관계가 유효한지 검증
-        // 허브 담당자일 경우 - 주문하려는 업체가 소속 업체인지 검증
-        if (role.equals(UserRole.HUB)) {
-            HubFindInfoResponseDto hubInfo = hubFeignClient.findHubInfoByUserId(userId);
-            ProductFindInfoResponseDto productInfo = productFeignClient.findById(request.productId());
-            validateUuidMatch(hubInfo.hubId(), productInfo.hubId());
-        }
-
-        // 업체 담당자의 경우 - 주문하려는 업체가 담당 업체인지 확인
-        if (role.equals(UserRole.COMPANY)) {
-            CompanyFindInfoResponseDto companyInfo = companyFeignClient.findCompanyInfoByUserId(userId);
-            ProductFindInfoResponseDto productInfo = productFeignClient.findById(request.productId());
-            validateUuidMatch(companyInfo.companyId(), productInfo.companyId());
-        }
-
-        // 배송 담당자의 경우 - 주문하려는 업체가 본인 소속 허브의 소속 업체인지 확인
-        if (role.equals(UserRole.DELIVERY)) {
-            DeliveryFindInfoResponseDto deliveryInfo = deliveryFeignClient.findDeliveryInfoByUserId(userId);
-            ProductFindInfoResponseDto productInfo = productFeignClient.findById(request.productId());
-            validateUuidMatch(deliveryInfo.hubId(), productInfo.hubId());
-        }
+        log.info("order create {}", request);
+        validateCreateOrderByAuthority(request.productId(), request.receiveCompanyId(), userId, role);
 
         // 주문 생성
         Order order = Order.builder()
@@ -95,28 +85,46 @@ public class OrderService {
         // 결제(가정)
         order.setStatusPaid();
 
-        // 배달 생성
-        deliveryFeignClient.createOrderDelivery();
-        order.setStatusShipping();
-
-        // 주문 영속화
         orderJpaRepository.save(order);
+
+        // 배달 생성
+        deliveryFeignClient.createOrderDelivery(
+                new DeliveryCreateRequestDto(
+                        order.getId(),
+                        order.getSupplyCompanyId(),
+                        order.getReceiveCompanyId()
+                ),
+                userId
+        );
+
+        order.setStatusReadyForShipment();
+    }
+
+    /**
+     * 주문 단건 조회
+     */
+    public OrderFindDetailResponseDto findOrderDetails(UUID orderId, UUID userId, UserRole role) {
+        OrderDetailsQuerydslResponseDto orderDetails = orderQuerydslRepository.findOrder(orderId);
+
+        validateFindOrderByAuthority(orderDetails.receiveCompanyId(), orderDetails.createdBy(), userId, role);
+
+        ProductFindInfoResponseDto productInfo = productFeignClient.findByProductId(orderDetails.productId());
+        CompanyFindInfoResponseDto companyInfo
+                = companyFeignClient.findCompanyInfoByCompanyId(orderDetails.receiveCompanyId());
+        HubFindInfoResponseDto hubInfo = hubFeignClient.findHubInfoByHubId(productInfo.hubId());
+
+        return OrderFindDetailResponseDto.from(orderDetails, companyInfo.companyName(), productInfo.productName(), hubInfo.hubName());
     }
 
     /**
      * 특정 허브 소속 업체들의 주문 내역 조회
      */
-    public OrderFindPageResponseDto findHubOrderPage(
-            Pageable pageable,
-            UUID hubId,
-            UUID userId,
-            UserRole role
-    ) {
-        validateHubOrdersByAuthority(hubId, userId, role);
+    public OrderFindPageResponseDto findHubOrderPage(Pageable pageable, UUID hubId, UUID userId, UserRole role) {
+        validateFindHubOrderPageByAuthority(hubId, userId, role);
 
         // 조회하려는 허브 정보 조회 및 소속 업체 조회
         HubFindInfoResponseDto hubInfo = hubFeignClient.findHubInfoByHubId(hubId);
-        CompanyFindInfoListResponseDto companyInfos = companyFeignClient.findCompanyInfoByHubId(hubId);
+        CompanyFindInfoListResponseDto companyInfos = companyFeignClient.findCompanyInfoListByHubId(hubId.toString());
 
         List<UUID> companyIds = companyInfos.data().stream()
                 .map(CompanyFindInfoResponseDto::companyId)
@@ -130,15 +138,18 @@ public class OrderService {
         Set<UUID> productIds = getUniqueProductIds(page.getContent());
 
         ProductFindInfoListResponseDto productInfoList
-                = productFeignClient.findByIds(new ProductFindInfoListRequestDto(productIds.stream().toList()));
+                = productFeignClient.findByProductIds(ProductFindInfoListRequestDto.from(productIds.stream().toList()));
 
         Map<UUID, String> products = productInfoList.toMap();
 
         return OrderFindPageResponseDto.from(page, hubInfo.hubName(), companies, products);
     }
 
+    /**
+     * 특정 업체 주문 내역 조회
+     */
     public OrderFindPageResponseDto findCompanyOrderPage(Pageable pageable, UUID companyId, UUID userId, UserRole role) {
-        validateCompanyOrdersByAuthority(companyId, userId, role);
+        validateFindCompanyOrderPageByAuthority(companyId, userId, role);
 
         Page<OrderDetailsQuerydslResponseDto> page
                 = orderQuerydslRepository.findCompanyOrderPage(pageable, companyId);
@@ -150,7 +161,7 @@ public class OrderService {
         Set<UUID> productIds = getUniqueProductIds(page.getContent());
 
         ProductFindInfoListResponseDto productInfoList
-                = productFeignClient.findByIds(new ProductFindInfoListRequestDto(productIds.stream().toList()));
+                = productFeignClient.findByProductIds(ProductFindInfoListRequestDto.from(productIds.stream().toList()));
 
         Map<UUID, String> products = productInfoList.toMap();
 
@@ -158,48 +169,201 @@ public class OrderService {
     }
 
     /**
-     * Hub 주문 목록 조회 인가
+     * 주문 수정
      */
-    private void validateHubOrdersByAuthority(UUID hubId, UUID userId, UserRole role) {
+    @Transactional
+    public void updateOrder(UUID orderId, OrderUpdateRequestDto request, UUID userId, UserRole role) {
+        Order order = findById(orderId);
+        validateUpdateOrDeleteOrderByAuthority(order.getReceiveCompanyId(), userId, role);
+
+        if (!order.isBeforeShipping()) {
+            throw new CustomRuntimeException(OrderException.CANNOT_UPDATE_ON_SHIPPING);
+        }
+
+        log.info("{}", request);
+
+        if (request.orderQuantity() != null) {
+            Integer orderQuantity = order.getQuantity();
+            Integer updateQuantity = request.orderQuantity();
+
+            // 재고 변경
+            if (!orderQuantity.equals(updateQuantity)) {
+                ProductUpdateStockResponseDto updateStockResponse = productFeignClient.updateStock(
+                        order.getProductId(),
+                        new ProductUpdateStockRequestDto(orderQuantity, updateQuantity),
+                        userId
+                );
+
+                order.updateOrderPrice(updateStockResponse.orderPrice());
+            }
+        }
+
+        order.update(request);
+    }
+
+    /**
+     * 주문 취소 메인 서비스 로직
+     */
+    @Transactional
+    public void cancelOrder(UUID orderId, UUID userId, UserRole role) {
+        Order order = findById(orderId);
+
+        // 배송 진행전까지만 취소 가능
+        if (!order.isBeforeShipping()) {
+            throw new CustomRuntimeException(OrderException.CANNOT_CANCEL_ON_SHIPPING);
+        }
+
+        validateUpdateOrDeleteOrderByAuthority(order.getReceiveCompanyId(), userId, role);
+
+        // 재고 변경(복구)
+        productFeignClient.updateStock(
+                order.getProductId(),
+                new ProductUpdateStockRequestDto(order.getQuantity(), 0),
+                userId
+        );
+
+        order.setStatusCancelled();
+    }
+
+    /**
+     * 주문 삭제 (소프트 딜리트 용)
+     */
+    @Transactional
+    public OrderDeleteResponseDto deleteOrder(UUID orderId, UUID userId, UserRole role) {
+        Order order = findById(orderId);
+
+        // 배송 완료 또는 주문 취소 상태일 때 삭제 가능
+        if (!order.isDeletableStatus()) {
+            throw new CustomRuntimeException(OrderException.CANNOT_DELETE_ON_THIS_STATUS);
+        }
+
+        validateUpdateOrDeleteOrderByAuthority(order.getReceiveCompanyId(), userId, role);
+
+        order.delete(userId);
+
+        return new OrderDeleteResponseDto(true);
+    }
+
+    /**
+     * 주문 생성 권한 검증
+     */
+    private void validateCreateOrderByAuthority(UUID productId, UUID receiveCompanyId, UUID userId, UserRole role) {
+        CompanyFindInfoResponseDto requestedCompany = companyFeignClient.findCompanyInfoByCompanyId(receiveCompanyId);
+        ProductFindInfoResponseDto requestedProduct = productFeignClient.findByProductId(productId);
+
+        // 수령 업체(주문 업체)와 주문하려는 상품의 등록 업체가 동일할 경우 주문 불가능
+        validateOwnProduct(requestedCompany.companyId(), requestedProduct.companyId());
+
+        // 허브 담당자일 경우 - 주문하려는 상품의 담당 업체가 소속 업체인지 검증
+        if (role.equals(UserRole.HUB)) {
+            HubFindInfoResponseDto userHub = hubFeignClient.findHubInfoByUserId(userId);
+            validateUuidMatch(userHub.hubId(), requestedCompany.hubId()); // 자신 소속 업체의 주문을 대신 할 수 있음
+            validateOwnProduct(userHub.hubId(), requestedProduct.hubId());
+        }
+
+        // 배송 담당자의 경우 - 주문하려는 업체가 본인 담당 허브의 소속 업체인지 검증
+        if (role.equals(UserRole.DELIVERY)) {
+            DeliveryFindInfoResponseDto userDelivery = deliveryFeignClient.findDeliveryInfoByUserId(userId.toString());
+            validateUuidMatch(userDelivery.hubId(), requestedCompany.hubId());
+            validateOwnProduct(userDelivery.hubId(), requestedProduct.hubId());
+        }
+
+        // 업체 담당자의 경우 - 주문하려는 업체가 본인의 업체인지 검증
+        if (role.equals(UserRole.COMPANY)) {
+            CompanyFindInfoResponseDto userCompany = companyFeignClient.findCompanyInfoByUserId(userId);
+            validateUuidMatch(userCompany.companyId(), requestedCompany.companyId());
+            validateOwnProduct(userCompany.companyId(), requestedProduct.companyId());
+        }
+    }
+
+    /**
+     * 주문 단건 조회 권한 검증
+     */
+    private void validateFindOrderByAuthority(UUID receiveCompanyId, UUID createdBy, UUID userId, UserRole role) {
+        // 허브 담당자의 경우 - 본인의 허브 소속 업체들의 주문 내역만 조회 가능
+        if (role.equals(UserRole.HUB)) {
+            HubFindInfoResponseDto userHub = hubFeignClient.findHubInfoByUserId(userId);
+            CompanyFindInfoResponseDto companyInfo = companyFeignClient.findCompanyInfoByCompanyId(receiveCompanyId);
+            validateUuidMatch(userHub.hubId(), companyInfo.hubId());
+        }
+
+        // 배송 담당자나 업체 담당자의 경우 - 본인의 주문 내역만 조회 가능
+        if (role.equals(UserRole.DELIVERY) || role.equals(UserRole.COMPANY)) {
+            validateUuidMatch(userId, createdBy);
+        }
+    }
+
+    /**
+     * Hub 주문 목록 조회 권한 검증
+     */
+    private void validateFindHubOrderPageByAuthority(UUID hubId, UUID userId, UserRole role) {
         // 권한 - 마스터 또는 본인 허브만 조회 가능
         // 배송 담당자 또는 업체 담당자의 경우 - 허브 주문 내역 조회 불가
         if (role.equals(UserRole.DELIVERY) || role.equals(UserRole.COMPANY)) {
             throw new CustomRuntimeException(OrderException.ACCESS_DENIED);
         }
 
-        // 허브 담당자의 경우 - 조회하려는 허브가 본인의 허브인지 확인
+        // 허브 담당자의 경우 - 본인 허브 소속 업체들의 주문 목록 조회 가능
         if (role.equals(UserRole.HUB)) {
-            HubFindInfoResponseDto hubInfo = hubFeignClient.findHubInfoByUserId(userId);
-            validateUuidMatch(hubInfo.hubId(), hubId);
+            HubFindInfoResponseDto userHub = hubFeignClient.findHubInfoByUserId(userId);
+            validateUuidMatch(userHub.hubId(), hubId);
         }
     }
 
     /**
-     * Company 주문 목록 조회 인가
+     * Company 주문 목록 조회 권한 검증
      */
-    private void validateCompanyOrdersByAuthority(UUID companyId, UUID userId, UserRole role) {
+    private void validateFindCompanyOrderPageByAuthority(UUID companyId, UUID userId, UserRole role) {
         // 권한 - 마스터 또는 소속 허브 담당자, 본인 업체만 조회 가능
         if (role.equals(UserRole.DELIVERY)) {
             throw new CustomRuntimeException(OrderException.ACCESS_DENIED);
         }
 
-        // 허브 담당자의 경우 - 본인의 조회하려는 업체가 본인 허브의 소속 업체인지 확인
+        // 허브 담당자의 경우 - 본인 허브 소속 업체의 주문 내역 목록 조회 가능
         if (role.equals(UserRole.HUB)) {
-            HubFindInfoResponseDto hubInfo = hubFeignClient.findHubInfoByUserId(userId);
+            HubFindInfoResponseDto userHub = hubFeignClient.findHubInfoByUserId(userId);
             CompanyFindInfoResponseDto companyInfo = companyFeignClient.findCompanyInfoByCompanyId(companyId);
-            validateUuidMatch(hubInfo.hubId(), companyInfo.hubId());
+            validateUuidMatch(userHub.hubId(), companyInfo.hubId());
         }
 
-        // 업체 담당자의 경우 - 조회하려는 허브가 본인의 허브인지 확인
+        // 업체 담당자의 경우 - 본인 업체의 주문 내역 목록 조회 가능
         if (role.equals(UserRole.COMPANY)) {
-            CompanyFindInfoResponseDto companyInfo = companyFeignClient.findCompanyInfoByUserId(userId);
-            validateUuidMatch(companyId, companyInfo.companyId());
+            CompanyFindInfoResponseDto userCompany = companyFeignClient.findCompanyInfoByUserId(userId);
+            validateUuidMatch(userCompany.companyId(), companyId);
+        }
+    }
+
+    /**
+     * 주문 수정/삭제용 권한 검증
+     */
+    private void validateUpdateOrDeleteOrderByAuthority(UUID receiveCompanyId, UUID userId, UserRole role) {
+        // 주문 수정/삭제는 마스터, 허브만 가능
+        if (role.equals(UserRole.DELIVERY) || role.equals(UserRole.COMPANY)) {
+            throw new CustomRuntimeException(OrderException.ACCESS_DENIED);
+        }
+
+        // 허브 담당자의 경우 - 본인 허브 소속 업체의 주문만 수정 가능
+        if (role.equals(UserRole.HUB)) {
+            HubFindInfoResponseDto userHub = hubFeignClient.findHubInfoByUserId(userId);
+            CompanyFindInfoResponseDto receiveCompany = companyFeignClient.findCompanyInfoByCompanyId(receiveCompanyId);
+            validateUuidMatch(userHub.hubId(), receiveCompany.hubId());
         }
     }
 
     private void validateUuidMatch(UUID expectedId, UUID actualId) {
+        log.info("Checking uuid match {}, {}", expectedId, actualId);
         if (!expectedId.equals(actualId)) {
             throw new CustomRuntimeException(OrderException.ACCESS_DENIED);
+        }
+    }
+
+    /**
+     * 자신의 허브 또는 업체가 등록한 상품이면 주문 불가능
+     */
+    private void validateOwnProduct(UUID expectedId, UUID actualId) {
+        log.info("is own product {}, {}", expectedId, actualId);
+        if (expectedId.equals(actualId)) {
+            throw new CustomRuntimeException(OrderException.CANNOT_ORDER_OWN_PRODUCT);
         }
     }
 
@@ -207,5 +371,10 @@ public class OrderService {
         return data.stream()
                 .map(OrderDetailsQuerydslResponseDto::productId)
                 .collect(Collectors.toSet());
+    }
+
+    private Order findById(UUID orderId) {
+        return orderJpaRepository.findById(orderId)
+                .orElseThrow(() -> new CustomRuntimeException(OrderException.PRODUCT_NOT_FOUND));
     }
 }

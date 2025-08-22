@@ -1,6 +1,7 @@
 package com.tunaforce.order.entity;
 
 import com.tunaforce.order.common.entity.Timestamped;
+import com.tunaforce.order.dto.request.OrderUpdateRequestDto;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -57,6 +58,35 @@ public class Order extends Timestamped {
         this.price = price;
     }
 
+    public void update(OrderUpdateRequestDto requestDto) {
+        updateQuantity(requestDto.orderQuantity());
+        updateMemo(requestDto.requestMemo());
+    }
+
+    private void updateQuantity(Integer quantity) {
+        if (quantity != null) {
+            this.quantity = quantity;
+        }
+    }
+
+    private void updateMemo(String memo) {
+        if (memo != null) {
+            this.requestMemo = memo;
+        }
+    }
+
+    public void updateOrderPrice(Integer price) {
+        this.price = price;
+    }
+
+    public boolean isBeforeShipping() {
+        return this.status.getIndex() < OrderStatus.SHIPPING.getIndex();
+    }
+
+    public boolean isDeletableStatus() {
+        return this.status.equals(OrderStatus.DELIVERED) || this.status.equals(OrderStatus.CANCELLED);
+    }
+
     // set order status
     public void setStatusPrepared() {
         this.status = OrderStatus.PREPARED;
@@ -66,11 +96,19 @@ public class Order extends Timestamped {
         this.status = OrderStatus.PAID;
     }
 
+    public void setStatusReadyForShipment() {
+        this.status = OrderStatus.READY_FOR_SHIPMENT;
+    }
+
     public void setStatusShipping() {
         this.status = OrderStatus.SHIPPING;
     }
 
     public void setStatusDelivered() {
         this.status = OrderStatus.DELIVERED;
+    }
+
+    public void setStatusCancelled() {
+        this.status = OrderStatus.CANCELLED;
     }
 }
