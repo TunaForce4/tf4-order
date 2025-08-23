@@ -54,11 +54,56 @@
 ## 9. 상세 업무
 
 ### Order
+
+- 주문 생성
+    - **POST** `/orders`
+    - 권한 검증 → 주문 데이터 생성(PENDING) → 재고 차감(PREPARED) → 결제 처리(PAID, 가정) → 배송 생성(READY_FOR_SHIPMENT)
+    - 권한
+        - 허브 담당자: 주문하려는 상품의 담당 업체가 본인 허브 소속 업체이면 주문 불가능
+        - 배송 담당자: 주문하려는 상품의 담당 업체가 본인 소속 허브의 소속 업체이면 주문 불가능
+        - 업체 담당자: 주문하려는 상품의 담당 업체가 본인 업체이면 주문 불가능
+
+- 주문 단건 조회
+    - **GET** `/orders/{orderId}`
+    - 조회 → 권한 검증 → 응답
+    - 권한
+        - 허브 담당자: 본인 허브 소속 업체의 주문 내역만 조회 가능
+        - 배송 담당자/업체 담당자: 본인의 주문 내역만 조회 가능 (createdBy)
+
+- 허브 주문 목록 조회 (페이지네이션)
+    - **GET** `/orders/hubs/{hubId}?page=&size=&sort=`
+    - 권한 검증 → 조회
+    - 권한
+        - 허브 담당자: 본인 허브의 경우에만 주문 내역 조회 가능
+        - 배송 담당자/업체 담당자: 조회 불가능
+
+- 업체 주문 목록 조회 (페이지네이션)
+    - **GET** `/orders/companies/{companyId}?page=&size=&sort=`
+    - 권한 검증 → 조회
+    - 권한
+        - 허브 담당자: 본인 허브의 경우에만 주문 내역 조회 가능
+        - 배송 담당자/업체 담당자: 조회 불가능
+
+- 주문 수정/삭제
+    - **PATCH** `/orders/{orderId}`
+    - **DELETE** `/orders/{orderId}`
+    - 권한 검증 → 수정/삭제
+    - 권한
+        - 허브 담당자: 본인 허브 소속 업체의 주문만 수정/삭제 가능
+        - 배송 담당자/업체 담당자: 수정/삭제 불가능
+
 - 유저 권한별 각 기능 유효성 검증
     <details>
         <summary>
             주문 생성
         </summary>
+
+  - POST /orders
+  - 권한 검증 -> 주문 데이터 생성(PENDING) -> 재고 차감(PREPARED) -> 결제 처리(PAID, 가정) -> 배송 생성(READY_FOR_SHIPMENT) 
+  - 권한
+    - 허브 담당자: 주문하려는 상품의 담당 업체가 본인 허브 소속 업체이면 주문 불가능
+    - 배송 담당자: 주문하려는 상품의 담당 업체가 본인 소속 허브의 소속 업체이면 주문 불가능
+    - 업체 담당자: 주문하려는 상품의 담당 업체가 본인 업체이면 주문 불가능
 
   ![주문_생성](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdna%2FxPINg%2FbtsP4XSCxSS%2FAAAAAAAAAAAAAAAAAAAAAG3ESMtMPZZUjmi_ZdQ9NwREYadL5FTRktzr09W8QqI3%2Fimg.png%3Fcredential%3DyqXZFxpELC7KVnFOS48ylbz2pIh7yKj8%26expires%3D1756652399%26allow_ip%3D%26allow_referer%3D%26signature%3D5RQHDbC5tbqrJP99tSOOM13DldA%253D)
 
@@ -68,21 +113,39 @@
             주문 단건 조회
         </summary>
 
+  - GET /orders/{orderId}
+  - 조회 -> 권한 검증 -> 응답
+  - 권한 검증
+    - 허브 담당자: 본인 허브 소속 업체의 주문 내역만 조회 가능
+    - 배송 담당자/업체 담당자: 본인의 주문 내역만 조회 가능(createdBy)
+
   ![주문_단건_조회](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdna%2FYUyMM%2FbtsP42M6yUs%2FAAAAAAAAAAAAAAAAAAAAAFtvhHyTD1SoIVRVKkI7FYjbjipnyLIGJaoOQAkHFwio%2Fimg.png%3Fcredential%3DyqXZFxpELC7KVnFOS48ylbz2pIh7yKj8%26expires%3D1756652399%26allow_ip%3D%26allow_referer%3D%26signature%3DE1uE4nSANqi9pkdUro5zhup7jCQ%253D)
 
     </details>
     <details>
         <summary>
-            허브 주문 목록 조회
+            허브 주문 목록 조회(페이지네이션)
         </summary>
+
+  - GET /orders/hubs/{hubId}?page=&size=&sort=
+  - 권한 검증 -> 조회
+  - 권한 검증
+    - 허브 담당자: 본인 허브의 경우에만 주문 내역 조회 가능
+    - 배송 담당자/업체 담당자: 조회 불가능
 
   ![허브_주문_목록_조회](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdna%2FSx1JW%2FbtsP3zygfB5%2FAAAAAAAAAAAAAAAAAAAAAFd-X_oZDXYSbyb7TEpAEcYIKXNHreH9YjDFQJatRZNV%2Fimg.png%3Fcredential%3DyqXZFxpELC7KVnFOS48ylbz2pIh7yKj8%26expires%3D1756652399%26allow_ip%3D%26allow_referer%3D%26signature%3Dm31hYum7%252BBoLusHd13TL145wdIw%253D)
 
     </details>
     <details>
         <summary>
-            업체 주문 목록 조회
+            업체 주문 목록 조회(페이지네이션)
         </summary>
+
+  - GET /orders/companies/{companyId}?page=&size=&sort=
+  - 권한 검증 -> 조회
+  - 권한 검증
+      - 허브 담당자: 본인 허브의 경우에만 주문 내역 조회 가능
+      - 배송 담당자/업체 담당자: 조회 불가능 
 
   ![업체_주문_목록_조회](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdna%2FcXccmB%2FbtsP4jaNFQz%2FAAAAAAAAAAAAAAAAAAAAALMtrwH1BsyE6SIlsnGzyL9IOusKKlfQYwE_O5HeyKTn%2Fimg.png%3Fcredential%3DyqXZFxpELC7KVnFOS48ylbz2pIh7yKj8%26expires%3D1756652399%26allow_ip%3D%26allow_referer%3D%26signature%3DyY6pur%252B7O%252B%252BshwyRWk90l9aPVXQ%253D)
 
@@ -92,17 +155,79 @@
             주문 수정/삭제
         </summary>
 
+  - PATCH /orders/{orderId}
+  - DELETE /orders/{orderId}
+  - 권한 검증 -> 수정/삭제
+  - 권한 검증
+    - 허브 담당자: 본인 허브 소속 업체의 주문만 수정/삭제 가능
+    - 배송 담당자/업체 담당자: 수정/삭제 불가능
+
   ![주문_수정](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdna%2FbN4LQE%2FbtsP4JAhXSG%2FAAAAAAAAAAAAAAAAAAAAAMUSR8Er9AvpScmUnCaOTKrMCOvRfQwT7C4hlsTWR3kL%2Fimg.png%3Fcredential%3DyqXZFxpELC7KVnFOS48ylbz2pIh7yKj8%26expires%3D1756652399%26allow_ip%3D%26allow_referer%3D%26signature%3D39sfLxpMiYSjgpYO%252FE%252BVPnrF4%252Fo%253D)
 
     </details>
 
 ### Product
 
+- 상품 생성
+    - **POST** `/products`
+    - 권한 검증 → 상품 생성
+    - 권한
+        - 허브 담당자: 등록하려는 상품의 담당 업체가 본인 허브 소속 업체이면 상품 등록 가능
+        - 업체 담당자: 등록하려는 상품의 담당 업체가 본인 업체이면 상품 등록 가능
+
+- 상품 단건 조회
+    - **GET** `/products/{productId}`
+    - 조회 → 권한 검증 → 응답
+    - 권한
+        - 허브 담당자: 조회하려는 상품의 담당 업체가 본인 허브 소속 업체이면 조회 가능
+        - 업체 담당자: 조회하려는 상품의 담당 업체가 본인 업체이면 조회 가능
+        - 배송 담당자: 조회 불가능
+
+- 주문용 상품 전체 조회 (페이지네이션)
+    - **GET** `/products?page=&size=&sort=&productName=`
+    - 조회 → 응답
+
+- 허브 등록 상품 목록 조회 (페이지네이션)
+    - **GET** `/products/hubs/{hubId}?page=&size=&sort=&productName=`
+    - 권한 검증 → 조회 → 응답
+    - 권한
+        - 허브 담당자: 본인 허브 소속 업체들의 등록 상품 목록 조회 가능
+        - 배송 담당자/업체 담당자: 조회 불가능
+
+- 업체 등록 상품 목록 조회 (페이지네이션)
+    - **GET** `/products/companies/{companyId}?page=&size=&sort=&productName=`
+    - 권한 검증 → 조회 → 응답
+    - 권한
+        - 허브 담당자: 본인 허브 소속 업체의 등록 상품 목록 조회 가능
+        - 배송 담당자: 조회 불가능
+        - 업체 담당자: 본인 업체의 등록 상품 목록 조회 가능
+
+- 상품 수정
+    - **PATCH** `/products/{productId}`
+    - 권한 검증 → 수정
+    - 권한
+        - 허브 담당자: 본인 허브 소속 업체의 등록 상품 수정 가능
+        - 업체 담당자: 본인 업체의 등록 상품 수정 가능
+        - 배송 담당자: 수정 불가능
+
+- 상품 삭제
+    - **DELETE** `/products/{productId}`
+    - 권한 검증 → 삭제
+    - 권한
+        - 허브 담당자: 본인 허브 소속 업체의 등록 상품 삭제 가능
+        - 배송 담당자/업체 담당자: 삭제 불가능
+
 - 유저 권한별 각 기능 유효성 검증
     <details>
         <summary>
             상품 생성
         </summary>
+
+    - POST /products
+    - 권한 검증 -> 상품 생성
+    - 권한
+        - 허브 담당자: 등록하려는 상품의 담당 업체가 본인 허브 소속 업체이면 상품 등록 가능
+        - 업체 담당자: 등록하려는 상품의 담당 업체가 본인 업체이면 상품 등록 가능
 
   ![상품_생성](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdna%2FbkOHf3%2FbtsP418xBfU%2FAAAAAAAAAAAAAAAAAAAAANTAYV6Flmf0aYQFKiT4bxZ1rYOAtrKdJiaVmSiT-Djf%2Fimg.png%3Fcredential%3DyqXZFxpELC7KVnFOS48ylbz2pIh7yKj8%26expires%3D1756652399%26allow_ip%3D%26allow_referer%3D%26signature%3DHfO4qIDI98YUiZOjXkxT9a%252FovSc%253D)
 
@@ -112,21 +237,52 @@
             상품 단건 조회
         </summary>
 
+    - GET /products/{productId}
+    - 조회 -> 권한 검증 -> 응답
+    - 권한
+      - 허브 담당자: 조회하려는 상품의 담당 업체가 본인 허브 소속 업체이면 조회 가능
+      - 업체 담당자: 조회하려는 상품의 담당 업체가 본인 업체이면 조회 가능
+      - 배송 담당자: 조회 불가능
+
   ![상품_단건_조회](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdna%2FcENDh5%2FbtsP0TdqBr5%2FAAAAAAAAAAAAAAAAAAAAANf3fNevha4wHkfxJJ67djEjfy5lv1rKUe3KXfPKcgpX%2Fimg.png%3Fcredential%3DyqXZFxpELC7KVnFOS48ylbz2pIh7yKj8%26expires%3D1756652399%26allow_ip%3D%26allow_referer%3D%26signature%3D3U%252FQRnYrfBsrAEKrd0mYSjTZ5bU%253D)
 
     </details>
     <details>
         <summary>
-            허브 등록 상품 목록 조회
+            주문용 상품 전체 조회(페이지네이션)
         </summary>
+
+    - GET /products?page=&size=&sort=&productName=
+    - 조회 -> 응답
+
+  ![상품_단건_조회](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdna%2FcENDh5%2FbtsP0TdqBr5%2FAAAAAAAAAAAAAAAAAAAAANf3fNevha4wHkfxJJ67djEjfy5lv1rKUe3KXfPKcgpX%2Fimg.png%3Fcredential%3DyqXZFxpELC7KVnFOS48ylbz2pIh7yKj8%26expires%3D1756652399%26allow_ip%3D%26allow_referer%3D%26signature%3D3U%252FQRnYrfBsrAEKrd0mYSjTZ5bU%253D)
+
+    </details>
+    <details>
+        <summary>
+            허브 등록 상품 목록 조회(페이지네이션)
+        </summary>
+
+    - GET /products/hubs/{hubId}?page=&size=&sort=&productName=
+    - 권한 검증 -> 조회 -> 응답
+    - 권한
+      - 허브 담당자: 본인 허브 소속 업체들의 등록 상품 목록 조회 가능
+      - 배송 담당자/업체 담당자: 조회 불가능
 
   ![허브_등록_상품_목록_조회](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdna%2Fb4gF5b%2FbtsP4e1BM6F%2FAAAAAAAAAAAAAAAAAAAAAK6eFEKK3E7u75yOHEyw7wyeLkgoXhoURZRjijhMSXAu%2Fimg.png%3Fcredential%3DyqXZFxpELC7KVnFOS48ylbz2pIh7yKj8%26expires%3D1756652399%26allow_ip%3D%26allow_referer%3D%26signature%3DiF7Tes%252FSHgq6KK4yk8skVfxcetU%253D)
 
     </details>
     <details>
         <summary>
-            업체 등록 상품 목록 조회
+            업체 등록 상품 목록 조회(페이지네이션)
         </summary>
+
+    - GET /products/companies/{companyId}?page=&size=&sort=&productName=
+    - 권한 검증 -> 조회 -> 응답
+    - 권한
+      - 허브 담당자: 본인 허브 소속 업체의 등록 상품 목록 조회 가능
+      - 배송 담당자: 조회 불가능
+      - 업체 담당자: 본인 업체의 등록 상품 목록 조회 가능
 
   ![업체_등록_상품_목록_조회](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdna%2FcBTWKX%2FbtsP4qnocyX%2FAAAAAAAAAAAAAAAAAAAAAB0R89YUWV3XmIA38WrNvcG-_dHulc9O1Eb-FpLAxjyY%2Fimg.png%3Fcredential%3DyqXZFxpELC7KVnFOS48ylbz2pIh7yKj8%26expires%3D1756652399%26allow_ip%3D%26allow_referer%3D%26signature%3DGajD4ta0IdFS47DK2W%252BrkfmgUK4%253D)
 
@@ -136,6 +292,13 @@
             상품 수정
         </summary>
 
+    - PATCH /products/{productId}
+    - 권한 검증 -> 수정
+    - 권한
+      - 허브 담당자: 본인 허브 소속 업체의 등록 상품에 대해서 수정 가능
+      - 배송 담당자: 수정 불가능
+      - 업체 담당자: 본인 업체의 등록 상품에 대해서 수정 가능
+
   ![상품_수정](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdna%2FxCLnK%2FbtsP4624ifa%2FAAAAAAAAAAAAAAAAAAAAADOQQIn41TP2pwZ0BqZHCZWjLL1KsOUAGAr106eHNrTi%2Fimg.png%3Fcredential%3DyqXZFxpELC7KVnFOS48ylbz2pIh7yKj8%26expires%3D1756652399%26allow_ip%3D%26allow_referer%3D%26signature%3DmT3cGgJRQjY1AKMHSh2Xe6G8poI%253D)
 
     </details>
@@ -143,6 +306,12 @@
         <summary>
             상품 삭제
         </summary>
+
+    - DELETE /products/{productId}
+    - 권한 검증 -> 삭제
+    - 권한
+      - 허브 담당자: 본인 허브 소속 업체의 등록 상품에 대해서 삭제 가능
+      - 배송 담당자/업체 담당자: 삭제 불가능
 
   ![상품_삭제](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdna%2Fb11bVy%2FbtsP4iQtGIB%2FAAAAAAAAAAAAAAAAAAAAAI8faBKIc_q6REmCQGIDYSxiT_pvo8IPVVOMuqHk75wi%2Fimg.png%3Fcredential%3DyqXZFxpELC7KVnFOS48ylbz2pIh7yKj8%26expires%3D1756652399%26allow_ip%3D%26allow_referer%3D%26signature%3DF%252FQTJXHI3PKAvxOUBfWsQ8drl0A%253D)
 
